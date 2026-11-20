@@ -97,6 +97,17 @@
       </div>
     </div>
 
+    <div class="card" style="grid-column:1/-1"><div class="k">Klawisze sterowania z telefonu</div>
+      <details id="kdet"><summary style="cursor:pointer;color:var(--cyan)">Pokaż i zmień klawisze (gdy w Twojej grze skrót jest inny)</summary>
+        <div class="hint">Zapis: litera, cyfra, znak (; ' , . [ ] / -) albo SPACE, BACKSPACE, ESC, TAB, ENTER, F1…F12, NUM0…NUM9, strzałki UP/DOWN/LEFT/RIGHT;
+          z modyfikatorem: SHIFT+H, CTRL+M, ALT+1. Puste pole = domyślny skrót TSW.</div>
+        <div id="kgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 14px;margin-top:10px"></div>
+        <div class="k" style="margin-top:14px">Własne przyciski na telefonie</div>
+        <div id="kcust"></div>
+        <div class="row" style="margin-top:8px"><button id="kAdd">+ Dodaj przycisk</button><button class="pri" id="kSave">Zapisz klawisze</button><span class="hint" id="kMsg"></span></div>
+      </details>
+    </div>
+
     <div class="card" style="grid-column:1/-1"><div class="k">Panel LED (Bluetooth, BK-Light ACT1025 64×16)</div>
       <div class="row" style="align-items:flex-start;gap:16px">
         <img id="ledPrev" src="/api/led/preview.png" alt="podgląd panelu" style="width:100%;max-width:512px;image-rendering:pixelated;border-radius:8px;border:1px solid var(--line)">
@@ -156,6 +167,7 @@ async function refresh() {
     $('#pcPin').textContent = C.enabled ? C.pin : '······';
     $('#pcLast').textContent = C.last ? 'Ostatnie polecenie: ' + C.last + '.' : '';
     $('#pcDev').innerHTML = (C.devices || []).length ? C.devices.map((d) => `<div class="row" style="margin:4px 0"><span>📱 ${esc(d.name)} <span class="hint">sparowany ${new Date(d.at).toLocaleString('pl-PL')}</span></span><button data-unpair="${esc(d.id)}">Odłącz</button></div>`).join('') : '<div class="hint">Brak sparowanych telefonów.</div>';
+    if (!kLoaded && C.keys) { kLoaded = true; renderKeys(C); }
     $('#pcDev').querySelectorAll('[data-unpair]').forEach((b) => b.onclick = async () => { await post('/api/phone/unpair', { id: b.dataset.unpair }); refresh(); });
     $('#fwBox').style.display = info.lan && info.firewall === false ? '' : 'none';
   } catch (_) { dot($('#dGame'), 'bad'); $('#sGame').textContent = 'program nie odpowiada'; }
@@ -183,6 +195,31 @@ addEventListener('message', (e) => {
   if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
   if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
 });
+// ---- edytor klawiszy (zapis w config.json; telefon wysyła tylko nazwę polecenia) ----
+let kLoaded = false;
+const inp = 'padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);font:14px inherit';
+function custRow(c) {
+  const d = document.createElement('div'); d.className = 'row'; d.style.margin = '4px 0';
+  d.innerHTML = `<input class="cl" placeholder="napis na przycisku" maxlength="24" style="${inp};width:200px" value="${esc(c.label || '')}">
+    <input class="ck" placeholder="klawisz, np. SHIFT+H" style="${inp};width:150px" value="${esc(c.key || '')}">
+    <label class="chk hint" style="margin:0"><input type="checkbox" class="ch" ${c.hold ? 'checked' : ''} style="width:16px;height:16px"> przytrzymywany</label>
+    <button class="cx">Usuń</button>`;
+  d.querySelector('.cx').onclick = () => d.remove();
+  $('#kcust').appendChild(d);
+}
+function renderKeys(C) {
+  $('#kgrid').innerHTML = C.keys.map((k) => `<label class="row" style="justify-content:space-between;gap:8px"><span>${esc(k.label)}</span>
+    <input data-k="${k.cmd}" placeholder="${esc(k.default)}" value="${k.key !== k.default ? esc(k.key) : ''}" style="${inp};width:110px;text-align:center"></label>`).join('');
+  $('#kcust').innerHTML = ''; (C.custom || []).forEach(custRow);
+}
+$('#kAdd').onclick = () => custRow({});
+$('#kSave').onclick = async () => {
+  const keys = {}; document.querySelectorAll('#kgrid input[data-k]').forEach((i) => { keys[i.dataset.k] = i.value.trim(); });
+  const custom = [...document.querySelectorAll('#kcust .row')].map((r) => ({ label: r.querySelector('.cl').value.trim(), key: r.querySelector('.ck').value.trim(), hold: r.querySelector('.ch').checked })).filter((c) => c.label && c.key);
+  const r = await fetch('/api/phone/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ keys, custom }) }).then((x) => x.json()).catch(() => ({}));
+  $('#kMsg').textContent = r.ok ? 'Zapisano — telefon pobierze nowe przyciski po odświeżeniu karty.' : (r.msg || 'błąd zapisu');
+  if (r.ok && r.control) renderKeys(r.control);
+};
 $('#pcOn').onchange = async (e) => { await post('/api/phone/enable', { on: e.target.checked }); toast(e.target.checked ? 'Sterowanie z telefonu włączone' : 'Sterowanie z telefonu wyłączone'); refresh(); };
 $('#fwAllow').onclick = async () => { await post('/api/app/firewall'); toast('Potwierdź w oknie Windows (zgoda administratora)'); setTimeout(refresh, 8000); };
 // ---- panel LED ----
