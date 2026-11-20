@@ -1,5 +1,5 @@
 {
- "version": "1.5.0",
+ "version": "1.5.1",
  "notes": "",
  "files": [
   {
@@ -9,12 +9,12 @@
   },
   {
    "path": "TSW-Asystent.exe",
-   "sha256": "a4670e90c9cbc54d4ecab820853f31f63a96dfea8fbc76c08a10519f914f33ae",
-   "size": 13905129
+   "sha256": "b767fca898d9a3c108e085116857c11bb2238f1d94b7669f20e8d72172efd509",
+   "size": 13904015
   },
   {
    "path": "version.json",
-   "sha256": "a7245ab22721009c5f1c14f3812e46a822321ca0c476ec92afd040319425020b",
+   "sha256": "17e795fd37cb3afbef37abf3a006539db832759792f813fbb9eaa5351064073b",
    "size": 90
   },
   {
