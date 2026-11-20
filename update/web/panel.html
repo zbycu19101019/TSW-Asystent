@@ -62,6 +62,11 @@
 
     <div class="card lan"><div class="k">Telefon / tablet (ta sama sieć Wi-Fi)</div>
       <div id="lanBox">…</div>
+      <div id="fwBox" style="display:none;margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--acc);background:#2a2412">
+        <b>Zapora Windows blokuje telefon.</b> <span class="hint" style="margin:0">Program działa, ale połączenia z sieci są zatrzymywane.</span>
+        <div class="row" style="margin-top:8px"><button class="pri" id="fwAllow">Zezwól w zaporze Windows</button></div>
+        <div class="hint">Windows zapyta o zgodę administratora. Reguła dotyczy tylko tego programu i tylko sieci prywatnych (domowych).</div>
+      </div>
       <div class="hint">Aplikacja Android „TSW Ekran” znajduje ten komputer sama (przycisk „Szukaj”). W przeglądarce telefonu wpisz adres powyżej.
         Przy pierwszym starcie Windows zapyta o zgodę zapory — zaznacz „Sieci prywatne”.</div>
     </div>
@@ -135,6 +140,7 @@ async function refresh() {
     $('#upApply').disabled = u.state !== 'available';
     if (st.lastCmd && st.lastCmd.result) $('#cmdRes').textContent = st.lastCmd.result;
     renderLed(info.led || {});
+    $('#fwBox').style.display = info.lan && info.firewall === false ? '' : 'none';
   } catch (_) { dot($('#dGame'), 'bad'); $('#sGame').textContent = 'program nie odpowiada'; }
 }
 document.querySelectorAll('[data-cmd]').forEach((b) => b.onclick = async () => {
@@ -160,6 +166,7 @@ addEventListener('message', (e) => {
   if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
   if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
 });
+$('#fwAllow').onclick = async () => { await post('/api/app/firewall'); toast('Potwierdź w oknie Windows (zgoda administratora)'); setTimeout(refresh, 8000); };
 // ---- panel LED ----
 const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
 function renderLed(L) {
