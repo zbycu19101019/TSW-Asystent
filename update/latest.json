@@ -1,5 +1,5 @@
 {
- "version": "1.1.0",
+ "version": "1.1.1",
  "notes": "",
  "files": [
   {
@@ -9,12 +9,12 @@
   },
   {
    "path": "TSW-Asystent.exe",
-   "sha256": "e83d0453fdb5c3f6c8b5355442fd5b93247df61246d00bbdc43121d97604838d",
-   "size": 13882213
+   "sha256": "e68347de0601a5f8c71204e68e9566b69cd88ee623149b7014b6c814ea5a83b9",
+   "size": 13884649
   },
   {
    "path": "version.json",
-   "sha256": "6e3a2eb468c5291aa9155135bce802c31dfb5015c150a76ab1d211c2ee3395c1",
+   "sha256": "296c1c64638c2e97988829cf2c2bead945cf24317805f96a55b8f0c06425387b",
    "size": 90
   },
   {
@@ -44,8 +44,8 @@
   },
   {
    "path": "web/panel.html",
-   "sha256": "105fdc9c979c65c4bf813d9a340d026c00794b0b9d6bfb66f1d6f7520e970bc7",
-   "size": 14286
+   "sha256": "2e6ffbfcdf9495d83538df5aab7c36dcdf9a846f60daf5c3e7df392a4efbf5fb",
+   "size": 15104
   },
   {
    "path": "web/prewarm.html",
