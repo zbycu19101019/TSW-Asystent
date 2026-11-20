@@ -1,20 +1,20 @@
 {
- "version": "1.3.0",
+ "version": "1.4.0",
  "notes": "",
  "files": [
   {
    "path": "CZYTAJ-MNIE.txt",
-   "sha256": "912a3b309aa8f5ec9ed5341b9d9eb6eaf9d80eceda4f6c7927eff4ba02251d6a",
-   "size": 4768
+   "sha256": "2240b8718eba171e649e249bcbb1f63e4b5ddcb110d403ea7047e5f3e3f1a551",
+   "size": 4908
   },
   {
    "path": "TSW-Asystent.exe",
-   "sha256": "3ae112d04de4a4ba5260a9ddc99cbe26434a90b9d96c5a6005c3b9263876a630",
-   "size": 13900185
+   "sha256": "1ed8eab9862a5667e3dfb9eaddd8fbf6650b6d87d9492338da047c9cfcd2b225",
+   "size": 13903685
   },
   {
    "path": "version.json",
-   "sha256": "a73998f1dc36c723ea033f8eee805138be8e66a1fa95c3ab0eace4ceaefdac6f",
+   "sha256": "99945ab9ce4bb774fe713eb8220753a20d2e2cbcc4d1cef1f61fe2c1cce526a9",
    "size": 90
   },
   {
@@ -39,8 +39,8 @@
   },
   {
    "path": "web/live.html",
-   "sha256": "b3d58945dbcfe432c7cabd914f732d9503c14457767141b8cff99cec00737495",
-   "size": 14947
+   "sha256": "cac61f19879b98034b6f3e4463e607ee3246e3b27be0da422343da6eb658c193",
+   "size": 35108
   },
   {
    "path": "web/panel.html",

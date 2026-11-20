@@ -31,7 +31,8 @@ GŁOSY
 TELEFON / TABLET
   Aplikacja Android „TSW Ekran” (plik TSW-Ekran.apk): „Szukaj w sieci” znajduje komputer sama, albo wpisz adres z okna programu.
   Karta „Pulpit”: pulpit maszynisty (obróć telefon poziomo). Przesuń palcem w bok — karta „Sterowanie”.
-  Sterowanie: sparuj telefon kodem z okna programu (karta „Sterowanie z telefonu”), potem przyciski nastawnika, hamulców,
+  Sterowanie: sparuj telefon kodem z okna programu (karta „Sterowanie z telefonu”). Dźwignie nastawnika i hamulców przesuwasz
+  palcem — program sam dociąga dźwignię w grze do tej pozycji. Nawrotnik TYŁ / N / PRZÓD, duże przyciski i zakładki funkcji:
   nawrotnika, czuwaka, syreny, świateł, drzwi, kamer… oraz „nastawnik na 0” / „odhamuj do końca” (program trzyma klawisz,
   aż gra pokaże zero). Nagłe hamowanie: przytrzymaj pół sekundy. Program wciska klawisze gry (domyślne skróty TSW) tylko
   w trakcie jazdy i tylko do okna Train Sim World. Inne skróty i własne przyciski: okno programu → „Klawisze sterowania”.
