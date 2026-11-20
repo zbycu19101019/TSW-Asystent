@@ -3,51 +3,156 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#05070C">
+<meta name="theme-color" content="#04060A">
 <title>TSW Ekran</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap">
 <style>
-  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E;--orange:#FF9F40}
+  :root{--bg:#04060A;--p1:#0E141F;--p2:#151D2B;--edge:#26324A;--hi:#3A4A68;--dim:#7F8BA0;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E;--orange:#FF9F40;--amber:#FFC83D}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:16px/1.3 "Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
-  .tabs{position:fixed;left:0;right:0;top:0;height:40px;display:flex;align-items:center;gap:6px;padding:max(4px,env(safe-area-inset-top)) 10px 4px;z-index:5;background:linear-gradient(#05070Cee,#05070C00)}
-  .tabs button{flex:0 0 auto;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:#0A0F18;color:var(--dim);font:700 14px inherit}
-  .tabs button.on{background:var(--acc);border-color:var(--acc);color:#111}
-  .tabs .st{margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
-  #conn{width:9px;height:9px;border-radius:50%;background:var(--red)} #conn.on{background:var(--green)}
-  .track{position:fixed;inset:0;display:flex;width:200vw;transition:transform .28s ease}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:15px/1.25 Barlow,"Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+  .cond{font-family:"Barlow Condensed",Barlow,sans-serif}
+  /* ---------- nagłówek i karty ---------- */
+  .tabs{position:fixed;left:0;right:0;top:0;height:44px;display:flex;align-items:center;gap:6px;padding:max(5px,env(safe-area-inset-top)) 10px 5px;z-index:5;background:linear-gradient(#04060Af2,#04060A00)}
+  .tabs button{padding:6px 16px;border-radius:999px;border:1px solid var(--edge);background:#0A0F18;color:var(--dim);font:700 14px Barlow,sans-serif;letter-spacing:.02em}
+  .tabs button.on{background:linear-gradient(#F3D78E,#C9A24C);border-color:#F3D78E;color:#1a1408;box-shadow:0 0 14px #E9C46A55}
+  .tabs .st{margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0}
+  .tabs .st span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #conn{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);flex:none} #conn.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .track{position:fixed;inset:0;display:flex;width:200vw;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
   .page{width:100vw;height:100%;position:relative;overflow:hidden}
-  /* karta 1: pulpit z Ekranika (1280×480) przeskalowany do ekranu */
-  #hudBox{position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
-  #hudWrap{position:relative;overflow:hidden;border-radius:10px;box-shadow:0 0 0 1px var(--line)}
+  #hudBox{position:absolute;left:0;right:0;top:46px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #hudWrap{position:relative;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px var(--edge),0 10px 40px #000}
   #hud{width:1280px;height:480px;border:0;transform-origin:0 0;position:absolute;left:0;top:0;background:#05070C}
   #rot{color:var(--dim);font-size:13px;text-align:center;padding:0 16px}
-  /* karta 2: sterowanie */
-  #ctl{position:absolute;inset:44px 0 0 0;overflow-y:auto;padding:6px 12px max(12px,env(safe-area-inset-bottom));touch-action:pan-y}
-  .msg{min-height:20px;font-size:13px;color:var(--dim);margin:2px 0 8px}
-  .msg.err{color:var(--orange)}
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  @media (orientation:landscape){.grid{grid-template-columns:repeat(4,1fr)}}
-  .b{padding:16px 8px;border-radius:16px;border:1px solid var(--line);background:#121A28;color:var(--txt);font:700 16px inherit;text-align:center;touch-action:none}
-  .b small{display:block;color:var(--dim);font-size:11px;font-weight:600;margin-top:3px}
-  .b.act{background:#24324a;border-color:var(--cyan);transform:scale(.97)}
-  .b.up{border-color:#2f6e55} .b.down{border-color:#6e4a2f}
-  .b.em{grid-column:1/-1;background:#3a0d14;border-color:var(--red);color:#ffd6db;font-size:18px;padding:18px}
-  .sec{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:14px 2px 8px}
-  .pair{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-  .pair input{width:100%;font:700 28px/1 "Segoe UI",Roboto,sans-serif;letter-spacing:.3em;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);margin:10px 0}
-  .pair button{width:100%;padding:14px;border-radius:12px;border:0;background:var(--acc);color:#111;font:800 16px inherit}
-  .stat{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;margin-bottom:6px}
-  .stat b{font-size:24px;font-weight:800;display:block;line-height:1} .stat small{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
-  .stat .bars{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;font-size:11px;color:var(--dim)}
-  .stat i{height:8px;border-radius:4px;background:#1a2232;overflow:hidden;display:block} .stat s{display:block;height:100%;width:0;background:var(--green);transition:width .2s}
-  .stat s.br{background:var(--orange)} .stat.over #sV{color:var(--red)}
-  .b.macro{border-style:dashed} .b.alarm{animation:al .5s infinite alternate} @keyframes al{to{background:#7a0f1d;border-color:var(--red)}}
-  .b.em{position:relative;overflow:hidden} .b.em .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#ff3b4e55;pointer-events:none}
-  .dots{position:fixed;left:0;right:0;bottom:max(6px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none}
-  .dots i{width:7px;height:7px;border-radius:50%;background:#2a3446} .dots i.on{background:var(--acc)}
+  .dots{position:fixed;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none}
+  .dots i{width:6px;height:6px;border-radius:50%;background:#26324A} .dots i.on{background:var(--acc);box-shadow:0 0 6px var(--acc)}
+
+  /* ---------- pulpit sterowania ---------- */
+  #cab{position:absolute;inset:46px 0 0 0;display:grid;gap:8px;padding:0 8px max(14px,env(safe-area-inset-bottom));
+    grid-template-columns:1fr 2fr;grid-template-areas:"inst inst" "big big" "levL levR" "fn fn";align-content:start;overflow-y:auto;overflow-x:hidden}
+  #inst{grid-area:inst} #big{grid-area:big} #levL{grid-area:levL} #levR{grid-area:levR} #fn{grid-area:fn}
+  @media (orientation:landscape){
+    #cab{grid-template-columns:minmax(96px,14vw) minmax(0,1fr) minmax(150px,21vw);grid-template-rows:auto auto 1fr;grid-template-areas:"levL inst levR" "levL big levR" "levL fn levR";align-content:stretch;overflow:hidden}
+    #fn{min-height:0} #inst,#big,#fn{min-width:0}
+    #big{padding:6px 10px;gap:8px} .round{max-height:64px} .round svg{width:36%;height:36%} .round span{font-size:9px;bottom:10%}
+    .spd b{font-size:38px} .sign{width:44px;height:44px;font-size:16px;border-width:5px} #inst{padding:6px 12px}
+    .levers{padding:8px 6px;min-height:0} .lev .val{font-size:18px} .k{min-height:62px;padding:8px 4px 6px} .k svg{width:22px;height:22px}
+  }
+  .plate{background:linear-gradient(160deg,#18202F 0%,#0D131D 55%,#0A0F17 100%);border:1px solid var(--edge);border-radius:16px;
+    box-shadow:inset 0 1px 0 #ffffff12,inset 0 -1px 0 #00000080,0 6px 18px #0008;position:relative}
+  .plate:before{content:"";position:absolute;inset:5px;border-radius:12px;border:1px solid #ffffff06;pointer-events:none}
+  .lbl{font:800 10px Barlow,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+  /* tablica przyrządów */
+  #inst{display:grid;grid-template-columns:auto auto 1fr auto;gap:12px;align-items:center;padding:8px 14px}
+  .spd b{font:800 46px/0.9 "Barlow Condensed",sans-serif;letter-spacing:-.01em;display:block;text-shadow:0 0 18px #38D6FF33}
+  .spd.over b{color:var(--red);text-shadow:0 0 18px #FF3B4E77} .spd small{color:var(--dim);font-size:11px}
+  .sign{width:52px;height:52px;border-radius:50%;background:#fff;border:6px solid #E3262F;display:grid;place-items:center;color:#111;font:800 19px "Barlow Condensed",sans-serif;box-shadow:0 0 0 1px #0006,0 0 14px #E3262F44}
+  .sign.none{background:#1a2232;border-color:#2b3650;color:var(--dim)}
+  .mid{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .nx{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .nx b{color:var(--amber);font-size:16px}
+  .leds{display:flex;gap:6px;flex-wrap:wrap}
+  .led{font:800 10px Barlow,sans-serif;letter-spacing:.12em;padding:3px 7px;border-radius:6px;border:1px solid #26324A;color:#4a5670;background:#0A0F18}
+  .led.on{color:#111;border-color:transparent} .led.g.on{background:var(--green);box-shadow:0 0 10px #3DDC9777} .led.a.on{background:var(--amber);box-shadow:0 0 10px #FFC83D77}
+  .led.r.on{background:var(--red);color:#fff;box-shadow:0 0 12px #FF3B4E99;animation:bl .5s infinite alternate}
+  @keyframes bl{to{opacity:.55}}
+  .sig{width:30px;height:30px;border-radius:50%;background:#1b2231;box-shadow:inset 0 2px 6px #000;border:3px solid #0b0f17}
+  .sig.Clear{background:radial-gradient(circle at 35% 35%,#b6ffd8,#2fd17f 55%,#0d6b3d);box-shadow:0 0 16px #3DDC97aa}
+  .sig.Approach,.sig.Restricted{background:radial-gradient(circle at 35% 35%,#fff2b8,#ffc83d 55%,#8a6410);box-shadow:0 0 16px #FFC83Daa}
+  .sig.Stop{background:radial-gradient(circle at 35% 35%,#ffc2c7,#ff3b4e 55%,#7a0f1d);box-shadow:0 0 16px #FF3B4Eaa}
+  .sigw{display:flex;flex-direction:column;align-items:center;gap:3px} .sigw small{font-size:11px;color:var(--dim)}
+  /* duże przyciski + nawrotnik */
+  #big{display:grid;grid-template-columns:repeat(3,1fr) 1.6fr;gap:10px;align-items:center;padding:10px 12px}
+  @media (orientation:portrait){#big{grid-template-columns:repeat(3,1fr)} #rev{grid-column:1/-1}}
+  .round{aspect-ratio:1;max-height:92px;width:100%;margin:auto;border-radius:50%;border:0;position:relative;display:grid;place-items:center;color:#fff;
+    font:800 11px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;touch-action:none}
+  .round svg{width:42%;height:42%;margin-bottom:12%}
+  .round span{position:absolute;bottom:14%;left:0;right:0;text-align:center}
+  .em{background:radial-gradient(circle at 38% 32%,#ff8a95,#e3162a 46%,#7a0712 78%);box-shadow:0 0 0 5px #2a0a0f,0 0 0 7px #ffb000,0 8px 22px #000,inset 0 -6px 10px #0006}
+  .em .ring{position:absolute;inset:-7px;border-radius:50%;background:conic-gradient(#fff var(--p,0%),transparent 0);-webkit-mask:radial-gradient(circle,transparent 63%,#000 64%);mask:radial-gradient(circle,transparent 63%,#000 64%);pointer-events:none}
+  .hornb{background:radial-gradient(circle at 38% 32%,#5c6c8c,#2a3550 55%,#151c2b);box-shadow:0 0 0 3px #0b0f17,0 0 0 4px #3A4A68,0 8px 20px #000}
+  .alb{background:radial-gradient(circle at 38% 32%,#6f6040,#3a3020 55%,#1c170e);box-shadow:0 0 0 3px #0b0f17,0 0 0 4px #6e5a2a,0 8px 20px #000}
+  .alb.on{background:radial-gradient(circle at 38% 32%,#ffe9a8,#ffb000 50%,#8a5a00);box-shadow:0 0 0 3px #0b0f17,0 0 0 4px #ffd36b,0 0 26px #ffb000;animation:bl .4s infinite alternate}
+  .round.act{transform:scale(.94);filter:brightness(1.25)}
+  #rev{display:flex;flex-direction:column;gap:6px}
+  .sw{display:grid;grid-template-columns:repeat(3,1fr);background:#070A10;border:1px solid var(--edge);border-radius:14px;padding:4px;gap:4px;box-shadow:inset 0 2px 8px #000}
+  .sw button{padding:12px 4px;border:0;border-radius:10px;background:transparent;color:var(--dim);font:800 15px "Barlow Condensed",sans-serif;letter-spacing:.06em}
+  .sw button.cur{background:linear-gradient(#2d3a55,#1a2336);color:var(--txt);box-shadow:inset 0 1px 0 #ffffff1a}
+  .sw button.on{color:#111;background:linear-gradient(#9ff5c9,#3DDC97);box-shadow:0 0 12px #3DDC9766}
+  /* dźwignie */
+  .levers{display:flex;gap:8px;padding:10px 8px;height:100%;min-height:260px}
+  @media (orientation:portrait){.levers{min-height:330px;height:330px} .lev .pm button{padding:6px 0}}
+  .lev{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+  .lev .val{font:800 22px "Barlow Condensed",sans-serif} .lev .val small{font-size:12px;color:var(--dim)}
+  .slot{position:relative;flex:1;width:100%;max-width:84px;border-radius:14px;background:linear-gradient(90deg,#05080d,#0e1420 50%,#05080d);border:1px solid #1e2738;box-shadow:inset 0 3px 10px #000;touch-action:none}
+  .slot .gr{position:absolute;left:50%;top:10px;bottom:10px;width:6px;margin-left:-3px;border-radius:3px;background:#020306;box-shadow:inset 0 0 3px #000}
+  .slot .tick{position:absolute;left:8px;right:8px;height:1px;background:#ffffff14} .slot .tick.m{left:4px;right:4px;background:#ffffff2a}
+  .slot .pos{position:absolute;left:3px;width:5px;border-radius:3px;bottom:10px;background:var(--c,#3DDC97);box-shadow:0 0 8px var(--c,#3DDC97);transition:height .25s}
+  .slot .knob{position:absolute;left:4px;right:4px;height:34px;margin-top:-17px;border-radius:10px;background:linear-gradient(#5d6a82,#2b3447 45%,#1a2130);
+    border:1px solid #6f7c96;box-shadow:0 6px 12px #000c,inset 0 1px 0 #ffffff40;display:grid;place-items:center}
+  .slot .knob:before{content:"";width:60%;height:4px;border-radius:2px;background:var(--c,#3DDC97);box-shadow:0 0 8px var(--c,#3DDC97)}
+  .slot.drag .knob{filter:brightness(1.25)}
+  .lev .pm{display:flex;gap:6px;width:100%;max-width:84px}
+  .lev .pm button{flex:1;padding:8px 0;border-radius:10px;border:1px solid var(--edge);background:linear-gradient(#1f2a3e,#131a28);color:var(--txt);font:800 18px Barlow,sans-serif;touch-action:none}
+  .lev .pm button.act{background:#2d3d5c}
+  .lev .nm{font:800 10px Barlow,sans-serif;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;text-align:center}
+  .lev.na .slot{opacity:.35}
+  /* funkcje */
+  #fn{display:flex;flex-direction:column;padding:8px 10px 10px;min-height:280px}
+  .seg{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none} .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid var(--edge);background:#0A0F18;color:var(--dim);font:700 13px Barlow,sans-serif}
+  .seg button svg{width:16px;height:16px} .seg button.on{color:var(--txt);border-color:var(--cyan);background:#0f2333;box-shadow:0 0 10px #38D6FF33}
+  .keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;overflow-y:auto;align-content:start;flex:1;padding:2px}
+  .k{position:relative;min-height:74px;padding:10px 6px 8px;border-radius:14px;border:1px solid #2a3650;background:linear-gradient(170deg,#1d2638,#121927 60%,#0e141f);
+    color:var(--txt);font:700 13px Barlow,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    box-shadow:inset 0 1px 0 #ffffff14,0 4px 10px #0007;touch-action:none;text-align:center;line-height:1.1}
+  .k svg{width:26px;height:26px;color:#9fb3d4}
+  .k i{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:#26324A}
+  .k i.ok{background:var(--green);box-shadow:0 0 8px var(--green)} .k i.err{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+  .k.act{transform:translateY(1px) scale(.97);background:linear-gradient(170deg,#25334d,#18223a);border-color:var(--cyan)} .k.act svg{color:var(--cyan)}
+  .k small{font-size:10px;color:#5d6a82;font-weight:600}
+  .k.hold:after{content:"";position:absolute;left:10px;right:10px;bottom:5px;height:2px;border-radius:1px;background:#38D6FF33}
+  #toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;transition:.2s;
+    background:#101826ee;border:1px solid var(--edge);padding:8px 14px;border-radius:12px;font-size:13px;z-index:9;max-width:92vw;text-align:center;pointer-events:none}
+  #toast.show{opacity:1;transform:translateX(-50%)} #toast.err{border-color:var(--orange);color:#ffd2a6}
+  /* parowanie */
+  #pairBox{position:absolute;inset:46px 0 0 0;display:none;place-items:center;padding:16px;background:radial-gradient(ellipse at 50% 20%,#122036,#04060A 70%);z-index:3}
+  #pairBox .card{width:min(420px,100%);padding:22px}
+  #pairBox h2{margin:0 0 6px;font:800 24px "Barlow Condensed",sans-serif}
+  #pin{width:100%;font:800 34px/1 "Barlow Condensed",sans-serif;letter-spacing:.35em;text-align:center;padding:14px;border-radius:14px;border:1px solid var(--edge);background:#070A10;color:var(--txt);margin:14px 0;box-shadow:inset 0 2px 8px #000}
+  #pairGo{width:100%;padding:15px;border-radius:14px;border:0;background:linear-gradient(#F3D78E,#C9A24C);color:#1a1408;font:800 17px Barlow,sans-serif}
+  .hint{color:var(--dim);font-size:13px}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="i-horn" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 10v4h4l6 4V6L7 10H3zM16 9a4 4 0 010 6M19 6a8 8 0 010 12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0"/></symbol>
+  <symbol id="i-sand" viewBox="0 0 24 24"><path fill="currentColor" d="M6 4h12l-4 7h-4zM8 15h1v1H8zm3 2h1v1h-1zm3-2h1v1h-1zm-4 4h1v1h-1zm4 1h1v1h-1zM7 18h1v1H7zm9 0h1v1h-1z"/></symbol>
+  <symbol id="i-panto" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 4h16M8 4l6 7-6 7M16 4l-6 7 6 7M5 20h14"/></symbol>
+  <symbol id="i-engine" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 3v8M7 6a7 7 0 1010 0"/></symbol>
+  <symbol id="i-park" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M9 17V7h4a3 3 0 010 6H9"/></symbol>
+  <symbol id="i-wiper" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 18a12 12 0 0116 0M12 18L17 7"/></symbol>
+  <symbol id="i-light" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 7a5 5 0 110 10H7V7zM14 8h7M14 12h7M14 16h7"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 18h6M10 21h4M8 14a6 6 0 118 0c-1 1-1 2-1 3H9c0-1 0-2-1-3z"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 17a8 8 0 1116 0M12 17l4-5"/></symbol>
+  <symbol id="i-tail" viewBox="0 0 24 24"><circle cx="8" cy="12" r="3" fill="currentColor"/><circle cx="16" cy="12" r="3" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" d="M3 5h18v14H3z"/></symbol>
+  <symbol id="i-beacon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M7 20h10M8 20v-6a4 4 0 018 0v6M12 4v2M5 7l1.5 1.5M19 7l-1.5 1.5"/></symbol>
+  <symbol id="i-doorl" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M13 3h7v18h-7zM10 12H3M6 9l-3 3 3 3"/></symbol>
+  <symbol id="i-doorr" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 3h7v18H4zM14 12h7M18 9l3 3-3 3"/></symbol>
+  <symbol id="i-doorc" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 3h18v18H3zM12 3v18M8 12h2M14 12h2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 11h12v10H6zM8 11V7a4 4 0 018 0v4"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
+  <symbol id="i-shot" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5h4v14H7zM13 5h4v14h-4z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12 4v10M12 19v1"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><path fill="currentColor" d="M8 3h8l5 5v8l-5 5H8l-5-5V8z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+  <symbol id="i-cruise" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 16a8 8 0 1116 0M12 16l-3-6M3 20h18"/></symbol>
+  <symbol id="i-cab" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 18V8l4-4h14v14zM3 18h18M7 8h10v5H7z"/></symbol>
+</defs></svg>
+
 <div class="tabs"><button id="t0" class="on">Pulpit</button><button id="t1">Sterowanie</button><span class="st"><span id="conn"></span><span id="svc"></span></span></div>
 <div class="track" id="track">
   <section class="page">
@@ -55,27 +160,39 @@
       <div id="rot">Obróć telefon poziomo — pulpit będzie większy. Przesuń palcem w bok — sterowanie.</div></div>
   </section>
   <section class="page">
-    <div id="ctl">
-      <div id="stat" class="stat">
-        <div><b id="sV">–</b><small>km/h</small></div><div><b id="sL">–</b><small>limit</small></div>
-        <div class="bars"><span>Nastawnik</span><i><s id="sP"></s></i><span>Hamulec</span><i><s id="sB" class="br"></s></i></div>
-        <div><b id="sD">–</b><small>kierunek</small></div>
+    <div id="cab">
+      <div id="levL" class="plate"><div class="levers" id="levsL"></div></div>
+      <div id="inst" class="plate">
+        <div class="spd" id="spd"><b class="cond" id="sV">–</b><small>km/h</small></div>
+        <div class="sign none" id="sL">–</div>
+        <div class="mid"><div class="nx" id="sN">następne ograniczenie: –</div>
+          <div class="leds"><span class="led r" id="lAl">CZUWAK</span><span class="led a" id="lSl">POŚLIZG</span><span class="led g" id="lCr">TEMPOMAT</span><span class="led a" id="lOv">ZA SZYBKO</span></div></div>
+        <div class="sigw"><div class="sig" id="sS"></div><small id="sSd">–</small></div>
       </div>
-      <div class="msg" id="cmsg">Przytrzymaj przycisk, żeby trzymać dźwignię. Klawisze trafiają tylko do okna gry na PC.</div>
-      <div id="pairBox" class="pair" style="display:none">
-        <b>Sparuj telefon ze sterowaniem</b>
-        <div class="msg">Wpisz 6-cyfrowy kod z okna TSW Asystenta na PC (karta „Sterowanie z telefonu”).</div>
-        <input id="pin" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
-        <button id="pairGo">Sparuj</button>
+      <div id="big" class="plate">
+        <button class="round em" id="bEm" data-cmd="emergency" data-mode="long"><span class="ring"></span><svg><use href="#i-stop"/></svg><span>Nagłe</span></button>
+        <button class="round hornb" data-cmd="horn" data-mode="hold"><svg><use href="#i-horn"/></svg><span>Syrena</span></button>
+        <button class="round alb" id="bAl" data-cmd="alerter" data-mode="tap"><svg><use href="#i-alert"/></svg><span>Czuwak</span></button>
+        <div id="rev"><div class="lbl">Nawrotnik</div>
+          <div class="sw" id="revSw"><button data-v="-1">TYŁ</button><button data-v="0">N</button><button data-v="1">PRZÓD</button></div></div>
       </div>
-      <div id="btns"></div>
+      <div id="fn" class="plate"><div class="seg" id="seg"></div><div class="keys" id="keys"></div></div>
+      <div id="levR" class="plate"><div class="levers" id="levsR"></div></div>
     </div>
+    <div id="pairBox"><div class="card plate">
+      <h2>Sparuj sterowanie</h2>
+      <div class="hint">Wpisz 6-cyfrowy kod z okna TSW Asystenta na PC (karta „Sterowanie z telefonu”). Kod działa raz.</div>
+      <input id="pin" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      <button id="pairGo">Sparuj</button>
+      <div class="hint" id="pairMsg" style="margin-top:10px"></div>
+    </div></div>
   </section>
 </div>
 <div class="dots"><i id="d0" class="on"></i><i id="d1"></i></div>
+<div id="toast"></div>
 <script>
-/* TSW Ekran (telefon / tablet): karta 1 = pulpit maszynisty z Ekranika (tsw.html), karta 2 = sterowanie pociągiem.
-   Przesunięcie palcem w bok (w obie strony) przełącza karty. Sterowanie: parowanie kodem z PC, potem stała lista poleceń. */
+/* TSW Ekran: karta 1 = pulpit maszynisty z Ekranika, karta 2 = pulpit sterowania (dźwignie, nawrotnik, przyciski z lampkami).
+   Przesunięcie palcem w bok przełącza karty. Polecenia idą do TSW Asystenta na PC (parowanie kodem, stała lista poleceń). */
 const $ = (id) => document.getElementById(id);
 let page = 0;
 function go(p) {
@@ -85,10 +202,9 @@ function go(p) {
   try { localStorage.setItem('tswPage', p); } catch (_) {}
 }
 $('t0').onclick = () => go(0); $('t1').onclick = () => go(1);
-// przesunięcie palcem: na stronie i w ramce pulpitu (ta sama domena — można słuchać jej dotyku)
-function swipe(el) {
+function swipe(el) {   // przesunięcie palcem w bok (nie na dźwigniach i przyciskach)
   let x0 = null, y0 = 0, t0 = 0;
-  el.addEventListener('touchstart', (e) => { if (e.target.closest && e.target.closest('.b')) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }, { passive: true });
+  el.addEventListener('touchstart', (e) => { const t = e.target; if (t.closest && t.closest('.k,.round,.slot,.sw,.pm,.seg,input,button')) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }, { passive: true });
   el.addEventListener('touchend', (e) => {
     if (x0 == null) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - t0 < 800) go(page === 0 ? 1 : 0);
@@ -96,99 +212,159 @@ function swipe(el) {
 }
 swipe(document);
 $('hud').addEventListener('load', () => { try { swipe($('hud').contentDocument); } catch (_) {} fit(); });
-// pulpit 1280×480 dopasowany do ekranu (cały widoczny)
 function fit() {
   const box = $('hudBox'), W = box.clientWidth - 8, H = box.clientHeight - ($('rot').offsetHeight + 16);
   const k = Math.min(W / 1280, Math.max(60, H) / 480);
   $('hudWrap').style.width = Math.round(1280 * k) + 'px'; $('hudWrap').style.height = Math.round(480 * k) + 'px';
-  $('hud').style.transform = `scale(${k})`;
-  $('rot').style.display = innerWidth > innerHeight ? 'none' : '';
+  $('hud').style.transform = `scale(${k})`; $('rot').style.display = innerWidth > innerHeight ? 'none' : '';
 }
 addEventListener('resize', fit); setTimeout(fit, 50);
 try { go(+localStorage.getItem('tswPage') || 0); } catch (_) {}
 
-// stan połączenia i pociąg (nagłówek)
-let lastOk = 0;
-setInterval(() => fetch('/api/live', { cache: 'no-store' }).then((r) => r.json()).then((d) => { lastOk = Date.now(); $('conn').className = 'on'; $('svc').textContent = d.running ? (d.service || '') + ' · ' + Math.round(Math.abs(d.speed || 0)) + ' km/h' : (d.problem || 'czekam na jazdę'); })
-  .catch(() => {}).finally(() => { if (Date.now() - lastOk > 4000) $('conn').className = ''; }), 1500);
+const toast = (t, err) => { const e = $('toast'); e.textContent = t; e.className = 'show' + (err ? ' err' : ''); clearTimeout(toast.t); toast.t = setTimeout(() => { e.className = ''; }, err ? 3500 : 1600); };
+const buzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (_) {} };
 
-// ---- sterowanie ----
+// ---- parowanie i wysyłanie ----
 let token = ''; try { token = localStorage.getItem('tswToken') || ''; } catch (_) {}
-const say = (t, err) => { $('cmsg').textContent = t; $('cmsg').className = 'msg' + (err ? ' err' : ''); };
-const showPair = (on) => { $('pairBox').style.display = on ? '' : 'none'; $('btns').style.display = on ? 'none' : ''; };
-async function send(cmd, act) {
+const showPair = (on) => { $('pairBox').style.display = on ? 'grid' : 'none'; };
+async function send(cmd, act, value) {
   try {
-    const r = await fetch('/api/phone/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, cmd, act }) });
+    const r = await fetch('/api/phone/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, cmd, act, value }) });
     const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { token = ''; try { localStorage.removeItem('tswToken'); } catch (_) {} showPair(true); say('Telefon nie jest sparowany — wpisz kod z PC.', true); return false; }
-    if (!r.ok) { say(j.msg || ('błąd ' + r.status), true); return false; }
-    return true;
-  } catch (_) { say('brak połączenia z PC', true); return false; }
+    if (r.status === 401) { token = ''; try { localStorage.removeItem('tswToken'); } catch (_) {} showPair(true); return { ok: false }; }
+    if (!r.ok) { toast(j.msg || ('błąd ' + r.status), true); return { ok: false, msg: j.msg, code: r.status }; }
+    return { ok: true };
+  } catch (_) { toast('brak połączenia z PC', true); return { ok: false }; }
 }
-const GROUP_NAMES = { jazda: 'Jazda', kierunek: 'Kierunek', kabina: 'Kabina', drzwi: 'Drzwi', widok: 'Widok i gra', 'własne': 'Własne' };
-async function build() {
-  const j = await fetch('/api/phone/controls', { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
-  if (!j) { say('brak połączenia z PC', true); return; }
-  if (!j.enabled) { say('Sterowanie z telefonu jest wyłączone w programie na PC.', true); $('btns').innerHTML = ''; return; }
-  const em = j.commands.find((c) => c.cmd === 'emergency');
-  let html = em ? `<div class="grid"><button class="b em" data-cmd="emergency" data-mode="long"><span class="fill"></span>NAGŁE HAMOWANIE<small>przytrzymaj ½ s · klawisz ${em.key}</small></button></div>` : '';
-  for (const g of Object.keys(GROUP_NAMES)) {
-    const list = j.commands.filter((c) => c.group === g); if (!list.length) continue;
-    html += `<div class="sec">${GROUP_NAMES[g]}</div><div class="grid">` + list.map((c) => {
-      const cls = /_up$|release|fwd|_off$/.test(c.cmd) ? 'up' : /_down$|apply|back|_zero$/.test(c.cmd) ? 'down' : '';
-      const hint = c.mode === 'hold' ? 'przytrzymaj · ' : c.mode === 'macro' ? 'automatycznie do zera · ' : '';
-      return `<button class="b ${cls} ${c.mode === 'macro' ? 'macro' : ''}" data-cmd="${c.cmd}" data-mode="${c.mode}">${c.label}<small>${hint}klawisz ${c.key}</small></button>`; }).join('') + '</div>';
-  }
-  $('btns').innerHTML = html;
-  $('btns').querySelectorAll('.b').forEach(bind);
-  showPair(!token);
-}
-function bind(b) {
-  const cmd = b.dataset.cmd, mode = b.dataset.mode;
-  let timer = null, down = false, longT = null;
-  const fill = b.querySelector('.fill');
+$('pairGo').onclick = async () => {
+  const pin = $('pin').value.replace(/\D/g, '');
+  const r = await fetch('/api/phone/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin, name: (navigator.userAgent.match(/;\s*([^;)]+)\s+Build/) || [, 'telefon'])[1] }) }).catch(() => null);
+  const j = r ? await r.json().catch(() => ({})) : {};
+  if (j.ok && j.token) { token = j.token; try { localStorage.setItem('tswToken', token); } catch (_) {} $('pin').value = ''; showPair(false); toast('Sparowano — możesz sterować'); buzz([20, 40, 20]); }
+  else $('pairMsg').textContent = j.msg || 'brak połączenia z PC';
+};
+
+// ---- przyciski (krótkie, przytrzymywane, nagłe z przytrzymaniem ½ s) ----
+function bindBtn(b) {
+  const cmd = b.dataset.cmd, mode = b.dataset.mode, led = b.querySelector('i');
+  let timer = null, down = false, longT = null, ringT = null;
+  const flash = (ok) => { if (!led) return; led.className = ok ? 'ok' : 'err'; clearTimeout(led.t); led.t = setTimeout(() => { led.className = ''; }, 900); };
   const start = async (e) => {
-    e.preventDefault(); if (down) return; down = true; b.classList.add('act'); try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
-    if (mode === 'long') {   // nagłe hamowanie: przytrzymać 0,5 s (bez przypadkowego dotknięcia)
-      if (fill) { fill.style.transition = 'width .5s linear'; fill.style.width = '100%'; }
-      longT = setTimeout(async () => { longT = null; try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch (_) {} if (await send(cmd, 'tap')) say('Nagłe hamowanie wysłane.'); }, 500);
+    e.preventDefault(); if (down) return; down = true; b.classList.add('act'); buzz(12);
+    if (mode === 'long') {
+      const t0 = Date.now(); ringT = setInterval(() => b.style.setProperty('--p', Math.min(100, (Date.now() - t0) / 5) + '%'), 16);
+      longT = setTimeout(async () => { longT = null; buzz([60, 40, 120]); const r = await send(cmd, 'tap'); if (r.ok) toast('NAGŁE HAMOWANIE'); }, 500);
       return;
     }
-    if (mode !== 'hold') { if (await send(cmd, 'tap') && mode === 'macro') say(b.firstChild.textContent + ' — trzymam klawisz, aż gra pokaże zero.'); return; }
-    if (await send(cmd, 'down')) timer = setInterval(() => send(cmd, 'down'), 500);   // „nadal trzymam” — PC puszcza klawisz po 1,5 s bez tego
+    if (mode === 'hold') { const r = await send(cmd, 'down'); flash(r.ok); if (r.ok && down) timer = setInterval(() => send(cmd, 'down'), 500); return; }
+    const r = await send(cmd, 'tap'); flash(r.ok); if (r.ok && mode === 'macro') toast(b.dataset.label + ' — trzymam klawisz, aż gra pokaże zero');
   };
   const end = () => {
     if (!down) return; down = false; b.classList.remove('act'); clearInterval(timer); timer = null;
-    if (longT) { clearTimeout(longT); longT = null; say('Za krótko — przytrzymaj nagłe hamowanie pół sekundy.'); }
-    if (fill) { fill.style.transition = 'none'; fill.style.width = '0'; }
+    if (longT) { clearTimeout(longT); longT = null; toast('Przytrzymaj nagłe hamowanie pół sekundy', true); }
+    if (ringT) { clearInterval(ringT); ringT = null; b.style.setProperty('--p', '0%'); }
     if (mode === 'hold') send(cmd, 'up');
   };
   b.addEventListener('pointerdown', start); ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => b.addEventListener(ev, end));
   b.addEventListener('contextmenu', (e) => e.preventDefault());
 }
-// pasek stanu na karcie sterowania (co 0,5 s, tylko gdy karta widoczna)
-setInterval(() => {
-  if (page !== 1 || document.hidden) return;
+document.querySelectorAll('#big [data-cmd]').forEach(bindBtn);
+
+// ---- dźwignie: przeciągnij do pozycji (PC dociąga dźwignię w grze wg odczytu), +/− do drobnych zmian ----
+const LEV = [
+  { id: 'throttle', name: 'Nastawnik', side: 'L', c: '#3DDC97', up: 'throttle_up', down: 'throttle_down', zero: 'throttle_zero' },
+  { id: 'brake', name: 'Hamulec', side: 'R', c: '#FF9F40', up: 'brake_apply', down: 'brake_release', zero: 'brake_off' },
+  { id: 'dyn', name: 'Ham. dyn.', side: 'R', c: '#38D6FF', up: 'dyn_up', down: 'dyn_down' },
+];
+const lev = {};
+for (const L of LEV) {
+  const el = document.createElement('div'); el.className = 'lev'; el.style.setProperty('--c', L.c);
+  el.innerHTML = `<div class="nm">${L.name}</div><div class="val cond"><span>–</span><small>%</small></div>
+    <div class="pm"><button data-cmd="${L.up}" data-mode="hold">+</button></div>
+    <div class="slot"><div class="gr"></div>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => `<div class="tick ${i % 5 ? '' : 'm'}" style="bottom:calc(10px + (100% - 20px) * ${i / 10})"></div>`).join('')}<div class="pos"></div><div class="knob"></div></div>
+    <div class="pm"><button data-cmd="${L.down}" data-mode="hold">−</button>${L.zero ? `<button data-cmd="${L.zero}" data-mode="macro" data-label="${L.name} na 0" style="font-size:13px">0</button>` : ''}</div>`;
+  (L.side === 'L' ? $('levsL') : $('levsR')).appendChild(el);
+  el.querySelectorAll('.pm button').forEach(bindBtn);
+  const slot = el.querySelector('.slot'), knob = el.querySelector('.knob'), act = el.querySelector('.pos'), val = el.querySelector('.val span');
+  const st = lev[L.id] = { el, slot, knob, act, val, target: null, drag: false, sentAt: 0, actual: null };
+  const posOf = (y) => { const r = slot.getBoundingClientRect(); return Math.max(0, Math.min(1, 1 - (y - r.top - 10) / (r.height - 20))); };
+  const place = (v) => { knob.style.top = `calc(10px + (100% - 20px) * ${1 - v})`; val.textContent = Math.round(v * 100); };
+  st.place = place; place(0);
+  let pend = null;
+  const push = async (v, force) => {
+    pend = v; if (!force && Date.now() - st.sentAt < 250) return; st.sentAt = Date.now();
+    const r = await send('lever:' + L.id, 'set', pend);
+    if (!r.ok && r.code === 409 && /nie podaje/.test(r.msg || '')) el.classList.add('na');
+  };
+  slot.addEventListener('pointerdown', (e) => { e.preventDefault(); slot.setPointerCapture(e.pointerId); st.drag = true; slot.classList.add('drag'); buzz(8); const v = posOf(e.clientY); st.target = v; place(v); push(v); });
+  slot.addEventListener('pointermove', (e) => { if (!st.drag) return; const v = posOf(e.clientY); if (Math.abs(v - st.target) >= 0.01) { if (Math.floor(v * 10) !== Math.floor(st.target * 10)) buzz(4); st.target = v; place(v); push(v); } });
+  const up = () => { if (!st.drag) return; st.drag = false; slot.classList.remove('drag'); push(st.target, true); st.relAt = Date.now(); };
+  slot.addEventListener('pointerup', up); slot.addEventListener('pointercancel', up);
+}
+// nawrotnik
+$('revSw').querySelectorAll('button').forEach((b) => b.addEventListener('click', async () => {
+  buzz(15); $('revSw').querySelectorAll('button').forEach((x) => x.classList.toggle('cur', x === b));
+  await send('lever:reverser', 'set', +b.dataset.v);
+}));
+
+// ---- funkcje w zakładkach ----
+const TABS = [
+  ['kabina', 'Kabina', 'i-cab'], ['swiatla', 'Światła', 'i-bulb'], ['drzwi', 'Drzwi', 'i-doorc'], ['kamera', 'Kamery', 'i-cam'],
+  ['jazda', 'Jazda', 'i-gauge'], ['gra', 'Gra', 'i-pause'], ['własne', 'Własne', 'i-star']];
+const ICON = { horn: 'i-horn', horn2: 'i-horn', bell: 'i-bell', sander: 'i-sand', panto: 'i-panto', engine: 'i-engine', handbrake: 'i-park', wipers: 'i-wiper',
+  wipers_fast: 'i-wiper', alerter: 'i-alert', lights: 'i-light', lights_dim: 'i-light', cab_light: 'i-bulb', instr_light: 'i-gauge', tail_light: 'i-tail',
+  beacon: 'i-beacon', doors_left: 'i-doorl', doors_right: 'i-doorr', doors_close: 'i-doorc', doors_lock: 'i-lock', map: 'i-map', hud: 'i-eye',
+  screenshot: 'i-shot', pause: 'i-pause', cruise_up: 'i-cruise', cruise_down: 'i-cruise', loco_apply: 'i-park', loco_release: 'i-park',
+  throttle_zero: 'i-gauge', brake_off: 'i-gauge', rev_fwd: 'i-gauge', rev_back: 'i-gauge' };
+const ON_BIG = new Set(['emergency', 'horn', 'alerter', 'throttle_up', 'throttle_down', 'brake_apply', 'brake_release', 'dyn_up', 'dyn_down', 'throttle_zero', 'brake_off']);
+let CMDS = [], tab = 'kabina';
+try { tab = localStorage.getItem('tswTab') || 'kabina'; } catch (_) {}
+function renderTabs() {
+  const has = (g) => CMDS.some((c) => c.group === g && !ON_BIG.has(c.cmd));
+  const list = TABS.filter(([g]) => has(g)); if (!list.some(([g]) => g === tab) && list.length) tab = list[0][0];
+  $('seg').innerHTML = list.map(([g, n, ic]) => `<button data-g="${g}" class="${g === tab ? 'on' : ''}"><svg><use href="#${ic}"/></svg>${n}</button>`).join('');
+  $('seg').querySelectorAll('button').forEach((b) => b.onclick = () => { tab = b.dataset.g; try { localStorage.setItem('tswTab', tab); } catch (_) {} renderTabs(); });
+  const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+  $('keys').innerHTML = CMDS.filter((c) => c.group === tab && !ON_BIG.has(c.cmd)).map((c) => {
+    const icon = c.cmd.startsWith('cam_') ? 'i-cam' : ICON[c.cmd] || (c.cmd.startsWith('custom:') ? 'i-star' : 'i-gauge');
+    return `<button class="k ${c.mode === 'hold' ? 'hold' : ''}" data-cmd="${esc(c.cmd)}" data-mode="${c.mode}" data-label="${esc(c.label)}"><i></i><svg><use href="#${icon}"/></svg>${esc(c.label)}<small>${esc(c.key)}</small></button>`;
+  }).join('');
+  $('keys').querySelectorAll('.k').forEach(bindBtn);
+}
+async function load() {
+  const j = await fetch('/api/phone/controls', { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+  if (!j) return;
+  if (!j.enabled) { toast('Sterowanie z telefonu jest wyłączone w programie na PC', true); }
+  CMDS = j.commands || []; renderTabs(); showPair(!token);
+}
+load(); setInterval(() => { if (page === 1 && !document.hidden && !document.querySelector('.act,.drag')) load(); }, 30000);
+
+// ---- stan jazdy na żywo (pasek przyrządów, lampki, położenie dźwigni z gry) ----
+let lastOk = 0;
+function live() {
   fetch('/api/live', { cache: 'no-store' }).then((r) => r.json()).then((d) => {
-    const v = d.speed == null ? null : Math.abs(d.speed);
-    $('sV').textContent = v == null ? '–' : Math.round(v); $('sL').textContent = d.limit == null ? '–' : Math.round(d.limit);
-    $('stat').classList.toggle('over', v != null && d.limit != null && v > d.limit + 3);
-    $('sP').style.width = Math.round(Math.max(0, Math.min(1, d.power || 0)) * 100) + '%';
-    $('sB').style.width = Math.round(Math.max(0, Math.min(1, d.brake || 0)) * 100) + '%';
-    $('sD').textContent = d.direction > 0 ? 'PRZÓD' : d.direction < 0 ? 'TYŁ' : 'N';
-    const al = document.querySelector('[data-cmd="alerter"]'); if (al) al.classList.toggle('alarm', (d.alerter || 0) > 0);
-  }).catch(() => {});
-}, 500);
-setInterval(() => { if (page === 1 && !document.hidden && !document.querySelector('.b.act')) build(); }, 30000);   // nowe klawisze / przyciski z PC
-$('pairGo').onclick = async () => {
-  const pin = $('pin').value.replace(/\D/g, '');
-  const r = await fetch('/api/phone/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin, name: (navigator.userAgent.match(/;\s*([^;)]+)\s+Build/) || [, 'telefon'])[1] }) }).catch(() => null);
-  const j = r ? await r.json().catch(() => ({})) : {};
-  if (j.ok && j.token) { token = j.token; try { localStorage.setItem('tswToken', token); } catch (_) {} $('pin').value = ''; showPair(false); say('Sparowano — możesz sterować.'); }
-  else say(j.msg || 'brak połączenia z PC', true);
-};
-build();
-document.addEventListener('visibilitychange', () => { if (document.hidden) document.querySelectorAll('.b.act').forEach((b) => b.dispatchEvent(new Event('pointerup'))); });
+    lastOk = Date.now(); $('conn').className = 'on';
+    $('svc').textContent = d.running ? (d.service || '') + ' · ' + Math.round(Math.abs(d.speed || 0)) + ' km/h' : (d.problem || 'czekam na jazdę');
+    if (page !== 1) return;
+    const v = d.speed == null ? null : Math.abs(d.speed), over = v != null && d.limit != null && v > d.limit + 3;
+    $('sV').textContent = v == null ? '–' : Math.round(v); $('spd').classList.toggle('over', over);
+    $('sL').textContent = d.limit == null ? '–' : Math.round(d.limit); $('sL').classList.toggle('none', d.limit == null);
+    const n = d.next; $('sN').innerHTML = n && n.kmh != null ? `następne: <b>${Math.round(n.kmh)}</b> km/h za ${n.dist >= 1000 ? (n.dist / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round((n.dist || 0) / 10) * 10 + ' m'}` : 'następne ograniczenie: –';
+    const a = d.signal && d.signal.aspect; $('sS').className = 'sig ' + (a || ''); $('sSd').textContent = d.signal && d.signal.dist ? (d.signal.dist >= 1000 ? (d.signal.dist / 1000).toFixed(1) + ' km' : Math.round(d.signal.dist / 10) * 10 + ' m') : '–';
+    $('lAl').classList.toggle('on', (d.alerter || 0) > 0); $('bAl').classList.toggle('on', (d.alerter || 0) > 0);
+    $('lSl').classList.toggle('on', !!d.slipping); $('lCr').classList.toggle('on', !!(d.cruise && d.cruise.active)); $('lOv').classList.toggle('on', over);
+    const map = { throttle: d.power, brake: d.brake, dyn: d.dyn };
+    for (const [id, x] of Object.entries(map)) {
+      const st = lev[id]; if (!st) continue;
+      st.el.classList.toggle('na', x == null && d.running);
+      st.act.style.height = x == null ? '0' : `calc((100% - 20px) * ${Math.max(0, Math.min(1, x))})`;
+      if (!st.drag && x != null && (!st.relAt || Date.now() - st.relAt > 4000)) st.place(Math.max(0, Math.min(1, x)));   // gałka podąża za grą, gdy jej nie trzymasz
+    }
+    $('revSw').querySelectorAll('button').forEach((b) => b.classList.toggle('on', d.running && +b.dataset.v === Math.sign(d.direction || 0)));
+  }).catch(() => {}).finally(() => { if (Date.now() - lastOk > 4000) $('conn').className = ''; });
+}
+setInterval(live, 400); live();
+document.addEventListener('visibilitychange', () => { if (document.hidden) document.querySelectorAll('.act').forEach((b) => b.dispatchEvent(new Event('pointerup'))); });
 </script>
 </body>
 </html>
