@@ -1,0 +1,111 @@
+{
+ "version": "1.0.0",
+ "notes": "",
+ "files": [
+  {
+   "path": "CZYTAJ-MNIE.txt",
+   "sha256": "f9072be341bcfced45a7aad5ef7385539e72a9639e7e6fdc1094ca91c4f8d212",
+   "size": 3604
+  },
+  {
+   "path": "TSW-Asystent.exe",
+   "sha256": "7c79489313681451cefe29cd6be9018c923d0640ffd54c7c0cc08d759614288b",
+   "size": 10418128
+  },
+  {
+   "path": "version.json",
+   "sha256": "b00026e0e4e7f54aebb1184429757e7e78562882ef094db325db0e8dcdcaba37",
+   "size": 90
+  },
+  {
+   "path": "web/i18n/de.js",
+   "sha256": "e31356961721bac7b7c7e1d056e4029842e2a0c413ecd0b4b047ce8d1996cc25",
+   "size": 5405
+  },
+  {
+   "path": "web/i18n/en.js",
+   "sha256": "20a7463d6b69acbdd4e555e1afc3de6cd99c8b3ea5d416fb5f902eb426a2383c",
+   "size": 5231
+  },
+  {
+   "path": "web/i18n/pl.js",
+   "sha256": "76f923d410919335859d4cd12c9d2f0a2ba645a7b4e4ccbdcc55587d1f73cef9",
+   "size": 5555
+  },
+  {
+   "path": "web/i18n/ui.js",
+   "sha256": "bc81589def5de4c113a81697331a63695b51c0aab22860843823baab3faa3e8c",
+   "size": 17898
+  },
+  {
+   "path": "web/live.html",
+   "sha256": "b67a09ff35840876111cea8b1cf8a0793e9cdede9509f41db74ff477e866cdad",
+   "size": 6290
+  },
+  {
+   "path": "web/panel.html",
+   "sha256": "5be09bfbf626dd311851b770dd8ce5041422a6b9c96b3008b78517d9668f7bd4",
+   "size": 10817
+  },
+  {
+   "path": "web/prewarm.html",
+   "sha256": "47e3b839604373e4aa7b2ff9c9f4df3415c7ab75445193aee0e90d970aa2c6d0",
+   "size": 1941
+  },
+  {
+   "path": "web/tsw-demo.js",
+   "sha256": "0c4884ddd59efa740c802dc4857f2f07e27f4cdd3615b48886a5569253fdd021",
+   "size": 3007
+  },
+  {
+   "path": "web/tsw-fx.js",
+   "sha256": "054e519e51945c19417ea5baa1965535ca5e91bf9d37846714689c08f8c4cf66",
+   "size": 5379
+  },
+  {
+   "path": "web/tsw-i18n.js",
+   "sha256": "816b0ecb16ec436ab53961af24773662ef537b7128b00a901137273c54194c8d",
+   "size": 1265
+  },
+  {
+   "path": "web/tsw-img/tsw-bezel.webp",
+   "sha256": "d9d51ad2933b23a698302dfa4a004c2b01730912374c7ae931ba6914d7263674",
+   "size": 45906
+  },
+  {
+   "path": "web/tsw-img/tsw-loco.webp",
+   "sha256": "08f86120ebb58730eec06bcd72e1a99a50f04936d1716a5c823f3a0189b56966",
+   "size": 99960
+  },
+  {
+   "path": "web/tsw-lektor.html",
+   "sha256": "dd7b2b0367d9428fa8e2864144862549ac8dc25602623bd932000e04ffbe5c4f",
+   "size": 10035
+  },
+  {
+   "path": "web/tsw-msg.js",
+   "sha256": "0764d2c705c2be31b87f1c3185db0516386f011f5d06bf3891669c2b4d606f74",
+   "size": 96935
+  },
+  {
+   "path": "web/tsw-phon.js",
+   "sha256": "a628a8b06dfc0c5098a8933cc8d7753ea839129dc4555fe9de7f908c5191634d",
+   "size": 30048
+  },
+  {
+   "path": "web/tsw-route.html",
+   "sha256": "57600007cf019e6eef55b39c22d43907b6cfa10dadf5cc14be27d7f704e9bdcb",
+   "size": 71608
+  },
+  {
+   "path": "web/tsw-settings.html",
+   "sha256": "19534a1a7b59eaf2210036cde244da87cdbb1cf69dc874f9b80894bfbce08f4e",
+   "size": 7424
+  },
+  {
+   "path": "web/tsw.html",
+   "sha256": "71d2d0938113bca76647208cd59663e8903170593a69c910492aaf09ed59757c",
+   "size": 29051
+  }
+ ]
+}

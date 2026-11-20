@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pl" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TSW Asystent</title>
+<style>
+  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at 30% 0%,#0E1626 0%,#05070C 60%);color:var(--txt);font:16px/1.45 "Segoe UI",system-ui,sans-serif;min-height:100vh}
+  main{max-width:860px;margin:0 auto;padding:22px 16px 48px}
+  h1{font-size:26px;margin:0}
+  .sub{color:var(--dim);font-size:14px;margin:2px 0 18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .k{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  button,.btn{padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#121A28;color:var(--txt);font:600 15px "Segoe UI",system-ui,sans-serif;cursor:pointer;text-decoration:none;display:inline-block}
+  button:hover,.btn:hover{border-color:var(--cyan)}
+  button.pri{background:var(--acc);border-color:var(--acc);color:#111}
+  button:disabled{opacity:.5;cursor:default}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--dim);margin-right:8px;vertical-align:1px}
+  .ok{background:var(--green)} .bad{background:var(--red)} .warn{background:var(--acc)}
+  .hint{color:var(--dim);font-size:13px;margin-top:8px}
+  .big{font-size:18px;font-weight:700}
+  code{background:#0A0F18;border:1px solid var(--line);border-radius:8px;padding:2px 7px;font-size:14px;user-select:all}
+  .lan code{display:inline-block;margin:4px 0;font-size:17px;color:var(--cyan)}
+  progress{width:100%;height:10px;accent-color:var(--green)}
+  label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
+  label.chk input{width:20px;height:20px}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#12301F;border:1px solid var(--green);color:#CFF7E2;padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+<main>
+  <h1>TSW Asystent</h1>
+  <div class="sub" id="ver">lektor i ekrany do Train Sim World 7</div>
+
+  <div class="grid">
+    <div class="card"><div class="k">Stan</div>
+      <div><span class="dot" id="dGame"></span><span id="sGame">sprawdzam…</span></div>
+      <div style="margin-top:6px"><span class="dot" id="dTts"></span><span id="sTts">…</span></div>
+      <div class="hint">Gra musi działać z telemetrią (parametr <code>-HTTPAPI</code>) — przycisk „Uruchom grę” robi to sam.</div>
+    </div>
+
+    <div class="card"><div class="k">Jazda</div>
+      <div class="row">
+        <button class="pri" data-cmd="start">Uruchom grę + rozkład</button>
+        <button data-cmd="route">Otwórz rozkład</button>
+        <button data-cmd="route-close">Zamknij rozkład</button>
+      </div>
+      <div class="hint" id="cmdRes">Rozkład (mapa, lektor) otwiera się na drugim monitorze, gdy jest podłączony.</div>
+      <div class="row" style="margin-top:10px">
+        <a class="btn" href="/tsw-route.html" target="_blank">Rozkład w karcie</a>
+        <a class="btn" href="/tsw.html" target="_blank">Pulpit</a>
+        <a class="btn" href="/tsw-settings.html" target="_blank">Ustawienia lektora</a>
+        <a class="btn" href="/tsw-lektor.html" target="_blank">Dziennik lektora</a>
+        <a class="btn" href="/tsw-route.html?demo=1" target="_blank">Pokaz bez gry</a>
+      </div>
+    </div>
+
+    <div class="card lan"><div class="k">Telefon / tablet (ta sama sieć Wi-Fi)</div>
+      <div id="lanBox">…</div>
+      <div class="hint">Aplikacja Android „TSW Ekran” znajduje ten komputer sama (przycisk „Szukaj”). W przeglądarce telefonu wpisz adres powyżej.
+        Przy pierwszym starcie Windows zapyta o zgodę zapory — zaznacz „Sieci prywatne”.</div>
+    </div>
+
+    <div class="card"><div class="k">Głosy offline (przygotowanie z góry)</div>
+      <div class="row">
+        <select id="pwCombo" style="padding:10px;border-radius:12px;background:#0A0F18;color:var(--txt);border:1px solid var(--line);font:15px inherit">
+          <option value="pl|gb|marek">Polski — Marek</option><option value="pl|gb|zofia">Polski — Zofia</option>
+          <option value="de|gb|marek">Deutsch — Conrad</option><option value="de|gb|zofia">Deutsch — Katja</option>
+          <option value="en|gb|marek">English GB — Ryan</option><option value="en|gb|zofia">English GB — Sonia</option>
+          <option value="en|us|marek">English US — Guy</option><option value="en|us|zofia">English US — Jenny</option>
+        </select>
+        <button id="pwGo">Przygotuj</button>
+      </div>
+      <progress id="pwBar" value="0" max="1" style="margin-top:10px"></progress>
+      <div class="hint" id="pwMsg">Ok. 1900 stałych komunikatów na głos (20–30 minut, raz, w tle — można jeździć). Potem lektor mówi od razu, a nowe teksty dochodzą w trakcie jazdy.</div>
+      <iframe id="pwFrame" style="display:none" title="przygotowanie głosów"></iframe>
+    </div>
+
+    <div class="card"><div class="k">Aktualizacje</div>
+      <div id="upMsg">…</div>
+      <div class="row" style="margin-top:10px"><button id="upCheck">Sprawdź</button><button id="upApply" class="pri" disabled>Zainstaluj</button></div>
+      <div class="hint">Aktualizacja podmienia tylko pliki programu (exe i katalog web). Ustawienia, dziennik, nagrania głosów i jazdy zostają nietknięte.</div>
+    </div>
+
+    <div class="card"><div class="k">Program</div>
+      <label class="chk"><input type="checkbox" id="auto"> Uruchamiaj razem z Windows (w tle)</label>
+      <div class="hint">Dane i ustawienia: <code id="dataDir">…</code></div>
+      <div class="row" style="margin-top:10px"><button data-open="data">Folder danych</button><button data-open="logs">Logi</button><button id="quit">Zakończ program</button></div>
+    </div>
+  </div>
+</main>
+<div id="toast"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const toast = (t) => { const e = $('#toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), 3500); };
+const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }).then((r) => r.json());
+const dot = (el, cls) => { el.className = 'dot ' + cls; };
+let info = null;
+
+async function refresh() {
+  try {
+    info = await fetch('/api/app').then((r) => r.json());
+    const st = await fetch('/api/ekranik/tsw/status').then((r) => r.json());
+    $('#ver').textContent = `wersja ${info.version} · ekrany ${info.web}`;
+    if (st.running) { dot($('#dGame'), 'ok'); $('#sGame').textContent = `jazda: ${st.service || 'pociąg'} · ${Math.round(st.speed || 0)} km/h`; }
+    else { dot($('#dGame'), /działa —|wczytuje/.test(st.problem || '') ? 'warn' : 'bad'); $('#sGame').textContent = st.problem || 'czekam na grę'; }
+    dot($('#dTts'), info.tts ? 'ok' : 'warn');
+    $('#sTts').textContent = info.tts ? 'lektor: głos online (Edge TTS) + pamięć nagrań' : 'lektor: tylko głos Windows (brak syntezy online)';
+    $('#lanBox').innerHTML = info.lan ? (info.lanUrls.length ? info.lanUrls.map((u) => `<code>${u}</code>`).join('<br>') : 'brak połączenia z siecią lokalną') : 'podgląd w sieci wyłączony (config.json → "lan": false)';
+    $('#dataDir').textContent = info.dataDir;
+    $('#auto').checked = !!info.autostart;
+    const u = info.update || {};
+    const um = { off: 'Aktualizacje wyłączone — brak adresu (config.json → "updateUrl").', idle: 'Nie sprawdzano.', latest: 'Masz najnowszą wersję.',
+      available: `Dostępna wersja ${u.latest} (${u.files} plików). ${u.notes || ''}`, downloading: 'Pobieram i sprawdzam pliki…', done: u.msg, error: u.msg };
+    $('#upMsg').textContent = um[u.state] || u.msg || '';
+    $('#upApply').disabled = u.state !== 'available';
+    if (st.lastCmd && st.lastCmd.result) $('#cmdRes').textContent = st.lastCmd.result;
+  } catch (_) { dot($('#dGame'), 'bad'); $('#sGame').textContent = 'program nie odpowiada'; }
+}
+document.querySelectorAll('[data-cmd]').forEach((b) => b.onclick = async () => {
+  b.disabled = true; $('#cmdRes').textContent = 'wykonuję…';
+  try { const r = await post('/api/ekranik/tsw/launch', { cmd: b.dataset.cmd }); $('#cmdRes').textContent = r.msg || ''; } catch (_) { toast('nie udało się'); }
+  b.disabled = false;
+});
+document.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => post('/api/app/open', { what: b.dataset.open }));
+$('#auto').onchange = async (e) => { const r = await post('/api/app/autostart', { on: e.target.checked }); toast(r.autostart ? 'Będzie startować z Windows' : 'Autostart wyłączony'); };
+$('#upCheck').onclick = async () => { $('#upMsg').textContent = 'sprawdzam…'; await post('/api/app/update', { action: 'check' }); refresh(); };
+$('#upApply').onclick = async () => { await post('/api/app/update', { action: 'apply' }); toast('Aktualizuję — program może się uruchomić ponownie'); setTimeout(refresh, 1500); };
+$('#quit').onclick = async () => { if (!confirm('Zakończyć TSW Asystenta? Lektor i ekrany przestaną działać.')) return; await post('/api/app/quit'); document.body.innerHTML = '<main><h1>TSW Asystent zakończony</h1><p class="sub">Uruchom TSW-Asystent.exe, żeby wrócić.</p></main>'; };
+// przygotowanie głosów: ukryta ramka z silnikiem lektora (własne ustawienia, nie zmienia ekranów)
+$('#pwGo').onclick = () => {
+  const [lang, accent, voice] = $('#pwCombo').value.split('|');
+  $('#pwGo').disabled = true; $('#pwMsg').textContent = 'start…'; $('#pwBar').value = 0;
+  $('#pwFrame').src = `/prewarm.html?lang=${lang}&accent=${accent}&voice=${voice}&t=${Date.now()}`;
+};
+addEventListener('message', (e) => {
+  const d = e.data || {}; if (!d.tswPrewarm) return;
+  if (d.tswPrewarm === 'start') { $('#pwBar').max = d.total; $('#pwMsg').textContent = `0 / ${d.total}`; }
+  if (d.tswPrewarm === 'progress') { $('#pwBar').max = d.total || $('#pwBar').max; $('#pwBar').value = d.done; $('#pwMsg').textContent = `${d.done} / ${d.total}`; }
+  if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
+  if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
+});
+refresh(); setInterval(refresh, 2500);
+</script>
+</body>
+</html>

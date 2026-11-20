@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pl" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Dziennik lektora</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap">
+<style>
+  :root{--bg:#05070C;--panel:#0B1019;--line:#1C2536;--dim:#7F8BA0;--txt:#E8EEF8;--green:#3DDC97;--yellow:#FFC83D;--red:#FF3B4E;--cyan:#38D6FF;--gold:#E9C46A;--orange:#FF9F40}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at 30% 0%,#0E1626 0%,#05070C 60%);color:var(--txt);font-family:Barlow,"Segoe UI",system-ui,sans-serif;min-height:100vh}
+  header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 16px;background:rgba(5,7,12,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:22px;font-weight:800;letter-spacing:.02em}
+  .grow{flex:1}
+  input,select,button{font:inherit;color:var(--txt);background:#0F1622;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+  button{cursor:pointer;font-weight:700}
+  label.f{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--dim);cursor:pointer}
+  main{padding:14px 16px 40px;max-width:1500px;margin:0 auto}
+  .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+  .tile{background:linear-gradient(180deg,rgba(17,25,39,.92),rgba(9,13,21,.94));border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  .tile .k{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .tile .v{font-family:"Barlow Condensed",sans-serif;font-size:28px;font-weight:800;margin-top:2px}
+  .tile .s{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.35}
+  .ride{margin:18px 0 6px;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{position:sticky;top:62px;background:#080C14;text-align:left;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:5px 8px;border-bottom:1px solid #121A28;vertical-align:top}
+  td.n{font-family:"Barlow Condensed",sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;color:#C9D2E0}
+  td.txt{max-width:560px}
+  .ev{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+  .ev.powiedziany{background:rgba(61,220,151,.15);color:var(--green)}
+  .ev.pominięty{background:rgba(127,139,160,.15);color:#AEB8C8}
+  .ev.przeterminowany{background:rgba(255,159,64,.15);color:var(--orange)}
+  .ev.nieaktualny{background:rgba(56,214,255,.12);color:var(--cyan)}
+  .ev.przerwany,.ev.wyczyszczony,.ev.zawieszony,.ev.dźwięk,.ev.zastąpiony{background:rgba(255,59,78,.14);color:#FF7A88}
+  .lvl{font-size:11px;font-weight:800;letter-spacing:.08em}
+  .lvl.crit{color:var(--red)}.lvl.warn{color:var(--yellow)}.lvl.info{color:var(--cyan)}.lvl.ok{color:var(--green)}
+  .over{color:var(--red);font-weight:800}
+  .why{color:var(--dim);font-size:13px}
+  .empty{color:var(--dim);padding:30px 0;text-align:center}
+  @media (max-width:800px){ th:nth-child(5),td:nth-child(5),th:nth-child(8),td:nth-child(8){display:none} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dziennik lektora</h1>
+  <input type="date" id="day">
+  <label class="f"><input type="checkbox" id="fSkip" checked> pominięte</label>
+  <label class="f"><input type="checkbox" id="fDrop" checked> odrzucone</label>
+  <label class="f"><input type="checkbox" id="fDemo"> testy / demo</label>
+  <select id="fLang" title="Język lektora"><option value="">wszystkie języki</option><option value="pl">PL</option><option value="de">DE</option><option value="en">EN</option></select>
+  <input id="q" placeholder="szukaj w tekście…" style="min-width:200px">
+  <span class="grow"></span>
+  <button id="reload">Odśwież</button>
+</header>
+<main>
+  <div class="sum" id="sum"></div>
+  <div id="list"></div>
+</main>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const today = new Date(); $('day').value = today.toISOString().slice(0, 10);
+  let rows = [];
+  // wpisy z testów: oznaczone „test”/„demo” albo z pociągu z trybu pokazowego (1T42 · RB 17a)
+  const isDemo = (r) => r.test || r.demo || /^1T42 · RB 17a/.test(r.svc || '');
+  const langOf = (r) => r.lang || (/[ąćęłńóśźż]|Stacja|Semafor|Przystanek|Prędkość|Hamować/.test(r.text || '') ? 'pl'
+    : /[äöüß]|Bahnhof|Signal,|Bremsen|Geschwindigkeit|Sprach/.test(r.text || '') ? 'de' : /Station|Signal|Brake|speed|Voice|Overspeed/i.test(r.text || '') ? 'en' : 'pl');
+  const local = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('pl-PL', { hour12: false }); };
+  async function load() {
+    try { const t = await (await fetch('/api/ekranik/tsw/lektor-log?n=5000&day=' + $('day').value, { cache: 'no-store' })).text();
+      rows = t.split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch (_) { return null; } }).filter(Boolean); }
+    catch (_) { rows = []; }
+    render();
+  }
+  function render() {
+    const q = $('q').value.trim().toLowerCase();
+    const L = $('fLang').value;
+    const vis = rows.filter((r) => ($('fDemo').checked || !isDemo(r)) && (!L || langOf(r) === L)
+      && ($('fSkip').checked || r.ev !== 'pominięty')
+      && ($('fDrop').checked || !['przeterminowany', 'nieaktualny', 'wyczyszczony'].includes(r.ev))
+      && (!q || String(r.text || '').toLowerCase().includes(q)));
+    // podsumowanie: co powiedział, co pominął i dlaczego, opóźnienia, źródło głosu
+    const real = rows.filter((r) => ($('fDemo').checked || !isDemo(r)) && (!L || langOf(r) === L));
+    const said = real.filter((r) => r.ev === 'powiedziany'), online = said.filter((r) => r.src === 'VPS').length;
+    const waits = said.map((r) => r.wait || 0).filter((x) => x >= 0).sort((a, b) => a - b);
+    const p = (a, f) => (a.length ? a[Math.min(a.length - 1, Math.floor(a.length * f))] : 0);
+    const reasons = {}; real.filter((r) => r.ev !== 'powiedziany').forEach((r) => { const k = r.ev + (r.why ? ': ' + r.why : ''); reasons[k] = (reasons[k] || 0) + 1; });
+    const topics = {}; said.forEach((r) => { const k = String(r.topic || '—').split(':')[0]; topics[k] = (topics[k] || 0) + 1; });
+    const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${esc(k)} ${v}`).join(' · ') || '—';
+    $('sum').innerHTML = [
+      ['Powiedziane', said.length, `z serwera (online) ${online} · lokalnie ${said.length - online} (${said.length ? Math.round((said.length - online) / said.length * 100) : 0}%)`],
+      ['Nie powiedziane', real.length - said.length, top(reasons)],
+      ['Czekanie na głos', (p(waits, 0.5) / 1000).toFixed(1).replace('.', ',') + ' s', `mediana · 90% ≤ ${(p(waits, 0.9) / 1000).toFixed(1).replace('.', ',')} s · najdłużej ${(p(waits, 1) / 1000).toFixed(1).replace('.', ',')} s`],
+      ['Tematy', Object.keys(topics).length, top(topics)],
+    ].map(([k, v, s2]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s2}</div></div>`).join('');
+    if (!vis.length) { $('list').innerHTML = '<div class="empty">Brak wpisów dla wybranego dnia i filtrów. Dziennik zapisuje 2. monitor podczas jazdy z włączonym głosem.</div>'; return; }
+    // grupy wg pociągu (przejazdu)
+    let html = '', cur = null;
+    const head = '<table><thead><tr><th>Czas</th><th>Gra</th><th>Zdarzenie</th><th>Komunikat</th><th>Prędkość / limit</th><th>Semafor</th><th>Następne ogr.</th><th>Powód / źródło</th><th>Czekał</th></tr></thead><tbody>';
+    vis.forEach((r) => {
+      const svc = r.svc || '(bez nazwy pociągu)';
+      if (svc !== cur) { if (cur !== null) html += '</tbody></table>'; cur = svc;
+        const rr = vis.filter((x) => (x.svc || '(bez nazwy pociągu)') === svc), ss = rr.filter((x) => x.ev === 'powiedziany'), sv = ss.filter((x) => x.src === 'VPS').length;
+        const langs = [...new Set(rr.map(langOf))].join('/').toUpperCase();
+        html += `<div class="ride">${esc(svc)} <span style="font-weight:600;color:var(--dim,#8a97ab);font-size:13px">· ${langs} · powiedziane ${ss.length} (online ${sv} · lokalnie ${ss.length - sv}) · nie powiedziane ${rr.length - ss.length}</span></div>` + head; }
+      const over = r.v != null && r.lim != null && r.v > r.lim + 2;
+      html += `<tr><td class="n">${local(r.t)}</td><td class="n">${esc(r.gt || '')}</td><td><span class="ev ${esc(r.ev)}">${esc(r.ev)}</span></td>`
+        + `<td class="txt"><span class="lvl ${esc(r.lvl)}">${esc((r.lvl || '').toUpperCase())}</span> ${esc(r.text)}${r.by ? `<div class="why">przerwał: ${esc(r.by)}</div>` : ''}</td>`
+        + `<td class="n ${over ? 'over' : ''}">${r.v != null ? r.v : '—'} / ${r.lim != null ? r.lim : '—'} km/h${r.acc != null ? ` · ${String(r.acc).replace('.', ',')} m/s²` : ''}</td>`
+        + `<td class="n">${esc(r.sig || '—')}${r.sigM != null ? ' · ' + r.sigM + ' m' : ''}</td>`
+        + `<td class="n">${r.nlim != null ? r.nlim + ' km/h · ' + r.nlimM + ' m' : '—'}</td>`
+        + `<td class="why">${esc(r.why || r.src || r.topic || '')}</td><td class="n">${r.wait != null ? (r.wait / 1000).toFixed(1).replace('.', ',') + ' s' : ''}</td></tr>`;
+    });
+    $('list').innerHTML = html + '</tbody></table>';
+  }
+  ['fSkip', 'fDrop', 'fDemo', 'fLang'].forEach((id) => $(id).addEventListener('change', render));
+  $('q').addEventListener('input', render); $('day').addEventListener('change', load); $('reload').addEventListener('click', load);
+  load(); setInterval(load, 15000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+TSW ASYSTENT — lektor i ekrany do Train Sim World 7 (wersja testowa)
+=====================================================================
+
+CO TO JEST
+  Lektor jak radiotelefon (ograniczenia, semafory, stacje, przekroczenia prędkości), rozkład z mapą
+  na drugim monitorze, pulpit maszynisty i podgląd jazdy na telefonie / tablecie w tej samej sieci Wi-Fi.
+  Języki lektora: polski, niemiecki, angielski (GB / US).
+
+URUCHOMIENIE
+  1. Rozpakuj cały folder (np. do Dokumenty\TSW-Asystent). Nie uruchamiaj exe z wnętrza pliku zip.
+  2. Uruchom TSW-Asystent.exe. Otworzy się panel w przeglądarce (http://127.0.0.1:31280/).
+     Windows SmartScreen może ostrzec o nieznanym wydawcy — „Więcej informacji” → „Uruchom mimo to”.
+     Zapora Windows zapyta o dostęp do sieci — zaznacz „Sieci prywatne” (potrzebne tylko dla telefonu/tabletu).
+  3. W panelu kliknij „Uruchom grę + rozkład”. Gra startuje z telemetrią (parametr -HTTPAPI), rozkład otwiera się
+     na drugim monitorze (przy jednym monitorze — w oknie).
+     Gra uruchomiona zwykle ze Steama nie ma telemetrii — zamknij ją i użyj przycisku w panelu
+     (albo raz w Steamie: Train Sim World 7 → Właściwości → Opcje uruchamiania: -HTTPAPI).
+     Jeśli program nie znajdzie gry: wpisz ścieżkę do TrainSimWorld.exe w config.json (pole "gameExe").
+  4. Wsiądź do kabiny — lektor zaczyna mówić. Kliknij raz w okno rozkładu, jeśli przeglądarka blokuje dźwięk.
+
+GŁOSY
+  Lektor korzysta z syntezy mowy online (Microsoft Edge TTS) — potrzebny internet. Każdy tekst pobierany jest raz
+  i zapamiętywany na dysku. Panel → „Głosy offline” przygotowuje wszystkie stałe komunikaty z góry (20–30 min na głos).
+  Bez internetu lektor mówi głosem Windows.
+
+TELEFON / TABLET
+  Aplikacja Android „TSW Ekran” (plik TSW-Ekran.apk): „Szukaj” znajduje komputer sama, albo wpisz adres z panelu.
+  Bez aplikacji: w przeglądarce telefonu otwórz adres z panelu (http://<adres PC>:31280/live.html).
+  Telefon tylko PODGLĄDA jazdę — nie może zmieniać ustawień ani sterować komputerem.
+
+GDZIE SĄ MOJE DANE
+  %APPDATA%\TSW-Asystent  (panel → „Folder danych”)
+    config.json     ustawienia programu (port, sieć, ścieżka gry, adres aktualizacji)
+    settings.json   ustawienia lektora (język, głos, poziom)
+    trips.json      ostatnie jazdy; rec\ telemetria jazd (7 dni); lektor-log\ dziennik lektora (14 dni)
+    cache\          nagrania głosów i stacje z mapy; logs\ log programu
+  Wersja przenośna: utwórz pusty plik portable.txt obok exe — dane trafią do podfolderu „dane”.
+  Klucz API gry (CommAPIKey.txt) jest czytany tylko lokalnie i nigdzie nie wysyłany.
+  Program wysyła do internetu wyłącznie: teksty komunikatów do syntezy mowy (Microsoft), położenie pociągu
+  w grze do wyszukania nazw stacji (OpenStreetMap / Overpass), kafelki mapy (OpenStreetMap, OpenRailwayMap).
+
+AKTUALIZACJE
+  Panel → „Aktualizacje” → „Sprawdź” / „Zainstaluj”. Podmieniane są tylko pliki programu (exe, folder web).
+  Ustawienia, dziennik, jazdy i nagrania głosów w folderze danych zostają nietknięte.
+  Poprzednia wersja plików trafia do .backup\ obok exe.
+
+ZGŁASZANIE BŁĘDÓW
+  Opisz, co się stało i kiedy. Pomaga: logs\asystent.log i plik z lektor-log\ z dnia jazdy (panel → „Logi”).
+  Te pliki zawierają tylko dane z gry (prędkość, limity, nazwa pociągu) — bez danych osobowych.
+
+ODINSTALOWANIE
+  Panel → odznacz „Uruchamiaj razem z Windows”, zakończ program, usuń folder programu i %APPDATA%\TSW-Asystent.

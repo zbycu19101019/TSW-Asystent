@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pl" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lektor TSW — ustawienia</title>
+<style>
+  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse at 30% 0%,#0E1626 0%,#05070C 60%);color:var(--txt);font:16px/1.4 "Segoe UI",system-ui,sans-serif;min-height:100vh}
+  main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+  h1{font-size:24px;margin:4px 0 2px}
+  .sub{color:var(--dim);font-size:14px;margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .k{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  .seg{display:flex;flex-wrap:wrap;gap:8px}
+  .seg button{flex:1 1 auto;min-width:72px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);font:600 15px inherit;cursor:pointer}
+  .seg button.on{background:var(--acc);border-color:var(--acc);color:#111}
+  .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .hint{color:var(--dim);font-size:13px;margin-top:8px}
+  .act{padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:#121A28;color:var(--txt);font:600 15px inherit;cursor:pointer}
+  .act:hover{border-color:var(--cyan)}
+  a{color:var(--cyan)}
+  label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
+  label.chk input{width:20px;height:20px}
+  #msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#12301F;border:1px solid var(--green);color:#CFF7E2;padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #msg.show{opacity:1}
+  .state{font-size:14px;color:var(--dim)} .state b{color:var(--txt)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Lektor TSW — ustawienia</h1>
+  <div class="sub">Wspólne dla 2. monitora i Ekranika. Zmiana działa od razu: 2. monitor przeładuje się, gdy lektor skończy mówić.</div>
+  <div class="card"><div class="state" id="state">sprawdzam stan…</div></div>
+
+  <div class="card"><div class="k">Język lektora i ekranów</div>
+    <div class="seg" id="lang"><button data-v="pl|gb">Polski</button><button data-v="de|gb">Deutsch</button><button data-v="en|gb">English (GB)</button><button data-v="en|us">English (US)</button></div>
+    <div class="hint">Polski: pełny słownik wymowy. Niemiecki i angielski: nazwy stacji czytane natywnym głosem.</div></div>
+
+  <div class="card"><div class="k">Głos</div>
+    <div class="seg" id="voice"><button data-v="marek">—</button><button data-v="zofia">—</button><button data-v="off">wyłączony</button></div></div>
+
+  <div class="card"><div class="k">Ile mówi lektor</div>
+    <div class="seg" id="level"><button data-v="1">tylko alarmy</button><button data-v="2">ważne</button><button data-v="3">normalnie</button><button data-v="4">wszystko</button></div></div>
+
+  <div class="card"><div class="k">Efekty radia</div>
+    <div class="seg" id="fx"><button data-v="server">na serwerze</button><button data-v="client">w przeglądarce</button></div>
+    <div class="hint">Na serwerze (domyślnie): gotowe nagrania z online. W przeglądarce: czysty głos z serwera, radio i megafon dokładane lokalnie.</div></div>
+
+  <div class="card"><div class="k">2. monitor</div>
+    <label class="chk"><input type="checkbox" id="autoreload"> sam się przeładowuje po wdrożeniu nowej wersji (na postoju)</label>
+    <div class="row" style="margin-top:12px">
+      <button class="act" id="reload">Przeładuj teraz</button>
+      <button class="act" id="testblock">Test blokady dźwięku</button>
+    </div>
+    <div class="hint">Test blokady: 2. monitor udaje wstrzymany dźwięk — następny komunikat powie głos systemowy, pojawi się czerwony pasek, kliknięcie ekranu przywraca radio.</div></div>
+
+  <div class="card row"><a href="/tsw-lektor.html">Dziennik lektora</a> · <a href="/tsw-route.html">2. monitor</a> · <a href="/tsw.html">Ekranik</a></div>
+</main>
+<div id="msg"></div>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const NAMES = { pl: ['Marek', 'Zofia'], de: ['Conrad', 'Katja'], 'en|gb': ['Ryan', 'Sonia'], 'en|us': ['Guy', 'Jenny'] };
+  let S = null;
+  const toast = (t) => { const m = $('msg'); m.textContent = t; m.classList.add('show'); clearTimeout(m._t); m._t = setTimeout(() => m.classList.remove('show'), 1800); };
+  const save = (o, t) => fetch('/api/ekranik/tsw/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) })
+    .then((r) => r.json()).then((j) => { if (j && j.ok) { S = j; render(); toast(t || 'Zapisano'); } else toast('Nie udało się zapisać'); }).catch(() => toast('Brak połączenia z portalem'));
+  function render() {
+    if (!S) return;
+    const key = S.lang + '|' + S.accent;
+    document.querySelectorAll('#lang button').forEach((b) => b.classList.toggle('on', b.dataset.v === (S.lang === 'en' ? key : S.lang + '|gb')));
+    const nm = NAMES[S.lang === 'en' ? key : S.lang] || NAMES.pl;
+    const vb = document.querySelectorAll('#voice button'); vb[0].textContent = nm[0]; vb[1].textContent = nm[1];
+    vb.forEach((b) => b.classList.toggle('on', b.dataset.v === S.voice));
+    document.querySelectorAll('#level button').forEach((b) => b.classList.toggle('on', +b.dataset.v === +S.level));
+    document.querySelectorAll('#fx button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.fx));
+    $('autoreload').checked = S.autoreload !== false;
+  }
+  document.querySelectorAll('#lang button').forEach((b) => b.onclick = () => { const [lang, accent] = b.dataset.v.split('|'); save({ lang, accent }, 'Język: ' + b.textContent); });
+  document.querySelectorAll('#voice button').forEach((b) => b.onclick = () => save({ voice: b.dataset.v }, 'Głos: ' + b.textContent));
+  document.querySelectorAll('#level button').forEach((b) => b.onclick = () => save({ level: +b.dataset.v }, 'Lektor: ' + b.textContent));
+  document.querySelectorAll('#fx button').forEach((b) => b.onclick = () => save({ fx: b.dataset.v }, 'Efekty: ' + b.textContent));
+  $('autoreload').onchange = () => save({ autoreload: $('autoreload').checked });
+  $('reload').onclick = () => save({ reload: true }, '2. monitor przeładuje się, gdy lektor skończy mówić');
+  $('testblock').onclick = () => save({ testblock: true }, 'Test wysłany — 2. monitor sprawdza go co 30 s');
+  fetch('/api/ekranik/tsw/settings', { cache: 'no-store' }).then((r) => r.json()).then((j) => { S = j; render(); }).catch(() => toast('Brak połączenia z portalem'));
+  const state = () => fetch('/api/ekranik/tsw', { cache: 'no-store' }).then((r) => r.json()).then((d) => {
+    $('state').innerHTML = d.running ? `Jazda: <b>${(d.service || 'pociąg').replace(/</g, '')}</b> · ${Math.round(d.speed || 0)} km/h${d.limit ? ` · limit ${Math.round(d.limit)} km/h` : ''}`
+      : `Gra nie jedzie${d.problem ? ` — ${String(d.problem).replace(/</g, '')}` : ''}${d.lastTrip ? ` · ostatnio <b>${String(d.lastTrip.service || '').replace(/</g, '')}</b>, ${String(d.lastTrip.km || 0).replace('.', ',')} km` : ''}`;
+  }).catch(() => {});
+  state(); setInterval(state, 5000);
+})();
+</script>
+</body>
+</html>

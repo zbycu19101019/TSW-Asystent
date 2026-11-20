@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pl" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070C">
+<title>TSW Ekran — na żywo</title>
+<style>
+  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:16px/1.3 "Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden}
+  .app{display:grid;grid-template-rows:auto 1fr auto;height:100%;padding:max(10px,env(safe-area-inset-top)) 14px max(10px,env(safe-area-inset-bottom))}
+  .top{display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:14px;gap:10px}
+  .top b{color:var(--txt)}
+  #conn{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:6px}
+  #conn.on{background:var(--green)}
+  .main{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center;min-height:0}
+  @media (orientation:landscape){.main{grid-template-columns:1.2fr 1fr 1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+  .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+  .speed{grid-row:span 2;align-items:center;text-align:center}
+  .speed .v{font-size:clamp(64px,22vw,150px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .speed .u{color:var(--dim);font-size:16px}
+  .speed.over .v{color:var(--red)}
+  .lim{display:flex;align-items:center;gap:12px}
+  .disc{width:64px;height:64px;border-radius:50%;border:7px solid var(--red);background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;flex:none}
+  .val{font-size:28px;font-weight:800}
+  .sub{color:var(--dim);font-size:14px}
+  .sig .asp{font-size:24px;font-weight:800}
+  .Clear{color:var(--green)} .Approach,.Restricted{color:var(--acc)} .Stop{color:var(--red)}
+  .msgs{margin-top:10px;max-height:32vh;overflow:hidden;display:flex;flex-direction:column-reverse;gap:6px}
+  .m{background:#0A0F18;border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:10px;padding:8px 10px;font-size:15px}
+  .m.crit{border-left-color:var(--red)} .m.warn{border-left-color:var(--acc)} .m .t{color:var(--dim);font-size:12px;margin-right:6px}
+  #idle{grid-column:1/-1;text-align:center;color:var(--dim);font-size:18px;display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><span><span id="conn"></span><b id="svc">TSW Ekran</b></span><span id="clock"></span></div>
+  <div class="main" id="main">
+    <div class="card speed" id="spd"><div class="k">Prędkość</div><div class="v" id="v">–</div><div class="u">km/h</div></div>
+    <div class="card"><div class="k">Limit</div><div class="lim"><div class="disc" id="lim">–</div><div><div class="val" id="nx">–</div><div class="sub" id="nxd">następny limit</div></div></div></div>
+    <div class="card sig"><div class="k">Semafor</div><div class="asp" id="sg">–</div><div class="sub" id="sgd"></div></div>
+    <div class="card"><div class="k">Jazda</div><div class="val" id="km">–</div><div class="sub" id="trip"></div></div>
+    <div id="idle"></div>
+  </div>
+  <div class="msgs" id="msgs"></div>
+</div>
+<script>
+/* Podgląd jazdy na żywo z TSW Asystenta (PC w tej samej sieci). Strumień: /api/live/stream (SSE), zapas: /api/live co 1 s. */
+const $ = (s) => document.getElementById(s);
+const ASP = { Clear: 'wolna droga', Approach: 'ostrzegawczy', Restricted: 'ograniczony', Stop: 'STÓJ' };
+const dist = (m) => m == null ? '' : m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m / 10) * 10 + ' m';
+let lastAt = 0, es = null;
+function render(d) {
+  lastAt = Date.now(); $('conn').className = 'on';
+  const run = d.running;
+  $('idle').style.display = run ? 'none' : 'block'; $('idle').textContent = run ? '' : (d.problem || 'czekam na jazdę…');
+  $('svc').textContent = d.service || 'TSW Ekran';
+  $('clock').textContent = d.gameTime ? String(d.gameTime).slice(11, 16) : '';
+  const v = d.speed == null ? null : Math.abs(d.speed);
+  $('v').textContent = v == null ? '–' : Math.round(v);
+  $('spd').classList.toggle('over', v != null && d.limit != null && v > d.limit + 3);
+  $('lim').textContent = d.limit == null ? '–' : Math.round(d.limit);
+  $('nx').textContent = d.next && d.next.kmh != null ? Math.round(d.next.kmh) + ' km/h' : '–';
+  $('nxd').textContent = d.next ? 'za ' + dist(d.next.dist) : 'następny limit';
+  const a = d.signal && d.signal.aspect; $('sg').textContent = a ? (ASP[a] || a) : '–'; $('sg').className = 'asp ' + (a || '');
+  $('sgd').textContent = d.signal && d.signal.dist ? dist(d.signal.dist) : '';
+  const t = d.trip || {}; $('km').textContent = t.km != null ? t.km.toFixed(1).replace('.', ',') + ' km' : '–';
+  $('trip').textContent = [t.vmax ? 'max ' + t.vmax + ' km/h' : '', t.overspeeds ? 'przekroczeń: ' + t.overspeeds : '', d.lastStop && d.lastStop.station ? 'postój: ' + d.lastStop.station : ''].filter(Boolean).join(' · ');
+  $('msgs').innerHTML = (d.said || []).slice(-4).reverse().map((m) => `<div class="m ${m.lvl}"><span class="t">${new Date(m.t).toTimeString().slice(0, 5)}</span>${m.text.replace(/[<&]/g, (c) => c === '<' ? '&lt;' : '&amp;')}</div>`).join('');
+}
+function connect() {
+  try { es && es.close(); } catch (_) {}
+  if (window.EventSource) { es = new EventSource('/api/live/stream'); es.onmessage = (e) => { try { render(JSON.parse(e.data)); } catch (_) {} }; es.onerror = () => { $('conn').className = ''; }; }
+}
+setInterval(() => { if (Date.now() - lastAt > 3000) { $('conn').className = ''; fetch('/api/live').then((r) => r.json()).then(render).catch(() => {}); if (Date.now() - lastAt > 10000) connect(); } }, 1000);
+connect();
+// ekran nie gaśnie (o ile przeglądarka pozwala)
+const wake = () => { try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (_) {} };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); }); wake();
+</script>
+</body>
+</html>
