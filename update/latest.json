@@ -1,20 +1,25 @@
 {
- "version": "1.5.1",
+ "version": "1.6.0",
  "notes": "",
  "files": [
   {
    "path": "CZYTAJ-MNIE.txt",
-   "sha256": "2240b8718eba171e649e249bcbb1f63e4b5ddcb110d403ea7047e5f3e3f1a551",
-   "size": 4908
+   "sha256": "747352b23ab275832373fbcaadd129bcf80d22e129367c589f889d073142e340",
+   "size": 5147
   },
   {
    "path": "TSW-Asystent.exe",
-   "sha256": "b767fca898d9a3c108e085116857c11bb2238f1d94b7669f20e8d72172efd509",
-   "size": 13904015
+   "sha256": "5deb17b58ebcd12b7aed12f59f4d29b9914ee5f24c0f124690a23d50ecff6285",
+   "size": 14062653
+  },
+  {
+   "path": "TSW-Ekran.apk",
+   "sha256": "659369bc190e0cf3c4c3c19e34f96fa8e90dff68481ba79999c14ea5f4315690",
+   "size": 21014
   },
   {
    "path": "version.json",
-   "sha256": "17e795fd37cb3afbef37abf3a006539db832759792f813fbb9eaa5351064073b",
+   "sha256": "1e07eb0b599960ea7881acbe95fbd410b9bfc4866574bffcefb52a1bb826c3ba",
    "size": 90
   },
   {
@@ -44,8 +49,8 @@
   },
   {
    "path": "web/panel.html",
-   "sha256": "865e6ba43f737074c051d6d1b8de9943032c3b146d48045f8afe00406e80a3a0",
-   "size": 20119
+   "sha256": "7669f088fe33e42f3c65cadab95c3a1c5fcb1aa75d1ba5436c1bc12368e20150",
+   "size": 21095
   },
   {
    "path": "web/prewarm.html",
@@ -94,8 +99,8 @@
   },
   {
    "path": "web/tsw-route.html",
-   "sha256": "57600007cf019e6eef55b39c22d43907b6cfa10dadf5cc14be27d7f704e9bdcb",
-   "size": 71608
+   "sha256": "b59e2f687281ea662d115a2507bad268eb9b5b70cc294c65288d93ee05166ab2",
+   "size": 71611
   },
   {
    "path": "web/tsw-settings.html",
@@ -104,8 +109,8 @@
   },
   {
    "path": "web/tsw.html",
-   "sha256": "71d2d0938113bca76647208cd59663e8903170593a69c910492aaf09ed59757c",
-   "size": 29051
+   "sha256": "f42a7954ac865dc19a0450cd42972b3d98ce6ba0b5d5a9ddc6fdd5318b1075bf",
+   "size": 29054
   }
  ]
 }
