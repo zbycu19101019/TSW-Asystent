@@ -86,6 +86,17 @@
       <iframe id="pwFrame" style="display:none" title="przygotowanie głosów"></iframe>
     </div>
 
+    <div class="card"><div class="k">Sterowanie z telefonu</div>
+      <label class="chk"><input type="checkbox" id="pcOn"> Pozwól sterować pociągiem z telefonu</label>
+      <div id="pcBody">
+        <div style="margin-top:10px">Kod parowania: <b id="pcPin" style="font-size:28px;letter-spacing:.2em;color:var(--acc)">······</b></div>
+        <div class="hint">Na telefonie: aplikacja TSW Ekran → przesuń palcem w bok → „Sterowanie” → wpisz kod. Kod działa raz.</div>
+        <div id="pcDev" style="margin-top:8px"></div>
+        <div class="hint">Telefon wciska klawisze gry (domyślne skróty TSW: A/D nastawnik, ; ' hamulec, Q czuwak, spacja syrena…) tylko wtedy,
+          gdy na pierwszym planie jest okno Train Sim World. Zmiana klawiszy: config.json → "controlKeys". <span id="pcLast"></span></div>
+      </div>
+    </div>
+
     <div class="card" style="grid-column:1/-1"><div class="k">Panel LED (Bluetooth, BK-Light ACT1025 64×16)</div>
       <div class="row" style="align-items:flex-start;gap:16px">
         <img id="ledPrev" src="/api/led/preview.png" alt="podgląd panelu" style="width:100%;max-width:512px;image-rendering:pixelated;border-radius:8px;border:1px solid var(--line)">
@@ -140,6 +151,12 @@ async function refresh() {
     $('#upApply').disabled = u.state !== 'available';
     if (st.lastCmd && st.lastCmd.result) $('#cmdRes').textContent = st.lastCmd.result;
     renderLed(info.led || {});
+    const C = info.control || {};
+    $('#pcOn').checked = !!C.enabled; $('#pcBody').style.opacity = C.enabled ? 1 : 0.4;
+    $('#pcPin').textContent = C.enabled ? C.pin : '······';
+    $('#pcLast').textContent = C.last ? 'Ostatnie polecenie: ' + C.last + '.' : '';
+    $('#pcDev').innerHTML = (C.devices || []).length ? C.devices.map((d) => `<div class="row" style="margin:4px 0"><span>📱 ${esc(d.name)} <span class="hint">sparowany ${new Date(d.at).toLocaleString('pl-PL')}</span></span><button data-unpair="${esc(d.id)}">Odłącz</button></div>`).join('') : '<div class="hint">Brak sparowanych telefonów.</div>';
+    $('#pcDev').querySelectorAll('[data-unpair]').forEach((b) => b.onclick = async () => { await post('/api/phone/unpair', { id: b.dataset.unpair }); refresh(); });
     $('#fwBox').style.display = info.lan && info.firewall === false ? '' : 'none';
   } catch (_) { dot($('#dGame'), 'bad'); $('#sGame').textContent = 'program nie odpowiada'; }
 }
@@ -166,6 +183,7 @@ addEventListener('message', (e) => {
   if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
   if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
 });
+$('#pcOn').onchange = async (e) => { await post('/api/phone/enable', { on: e.target.checked }); toast(e.target.checked ? 'Sterowanie z telefonu włączone' : 'Sterowanie z telefonu wyłączone'); refresh(); };
 $('#fwAllow').onclick = async () => { await post('/api/app/firewall'); toast('Potwierdź w oknie Windows (zgoda administratora)'); setTimeout(refresh, 8000); };
 // ---- panel LED ----
 const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
