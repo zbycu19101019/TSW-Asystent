@@ -18,6 +18,13 @@
   .tabs .st{margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0}
   .tabs .st span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #conn{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);flex:none} #conn.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .tabs,.dots{transition:transform .3s ease,opacity .3s ease}
+  body.hid .tabs{transform:translateY(-110%);opacity:0;pointer-events:none} body.hid .dots{opacity:0}
+  #grab{position:fixed;left:0;right:0;top:0;height:22px;z-index:6;display:none;justify-content:center;padding-top:5px}
+  #grab:before{content:"";width:46px;height:4px;border-radius:2px;background:#3A4A68aa}
+  body.hid #grab{display:flex}
+  #hudBox,#pairBox{transition:top .3s ease} #cab{transition:transform .3s ease}
+  body.hid #hudBox{top:8px}
   .track{position:fixed;inset:0;display:flex;width:200vw;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
   .page{width:100vw;height:100%;position:relative;overflow:hidden}
   #hudBox{position:absolute;left:0;right:0;top:46px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
@@ -28,11 +35,12 @@
   .dots i{width:6px;height:6px;border-radius:50%;background:#26324A} .dots i.on{background:var(--acc);box-shadow:0 0 6px var(--acc)}
 
   /* ---------- pulpit sterowania ---------- */
-  #cab{position:absolute;inset:46px 0 0 0;display:grid;gap:8px;padding:0 8px max(14px,env(safe-area-inset-bottom));
-    grid-template-columns:1fr 2fr;grid-template-areas:"inst inst" "big big" "levL levR" "fn fn";align-content:start;overflow-y:auto;overflow-x:hidden}
+  /* pulpit ma stały projekt (pion 430×960, poziom 960×430) i jest skalowany w całości do ekranu (fitCab) — wygląda tak samo na każdym telefonie */
+  #cab{position:absolute;left:0;top:0;width:430px;height:960px;transform-origin:0 0;display:grid;gap:8px;padding:0 8px 10px;
+    grid-template-columns:1fr 2fr;grid-template-rows:auto auto 330px minmax(0,1fr);grid-template-areas:"inst inst" "big big" "levL levR" "fn fn";overflow:hidden}
   #inst{grid-area:inst} #big{grid-area:big} #levL{grid-area:levL} #levR{grid-area:levR} #fn{grid-area:fn}
   @media (orientation:landscape){
-    #cab{grid-template-columns:minmax(96px,14vw) minmax(0,1fr) minmax(150px,21vw);grid-template-rows:auto auto 1fr;grid-template-areas:"levL inst levR" "levL big levR" "levL fn levR";align-content:stretch;overflow:hidden}
+    #cab{width:960px;height:430px;grid-template-columns:128px minmax(0,1fr) 196px;grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"levL inst levR" "levL big levR" "levL fn levR"}
     #fn{min-height:0} #inst,#big,#fn{min-width:0}
     #big{padding:6px 10px;gap:8px} .round{max-height:64px} .round svg{width:36%;height:36%} .round span{font-size:9px;bottom:10%}
     .spd b{font-size:38px} .sign{width:44px;height:44px;font-size:16px;border-width:5px} #inst{padding:6px 12px}
@@ -80,7 +88,7 @@
   .sw button.on{color:#111;background:linear-gradient(#9ff5c9,#3DDC97);box-shadow:0 0 12px #3DDC9766}
   /* dźwignie */
   .levers{display:flex;gap:8px;padding:10px 8px;height:100%;min-height:260px}
-  @media (orientation:portrait){.levers{min-height:330px;height:330px} .lev .pm button{padding:6px 0}}
+  @media (orientation:portrait){.levers{height:100%} .lev .pm button{padding:6px 0}}
   .lev{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
   .lev .val{font:800 22px "Barlow Condensed",sans-serif} .lev .val small{font-size:12px;color:var(--dim)}
   .slot{position:relative;flex:1;width:100%;max-width:84px;border-radius:14px;background:linear-gradient(90deg,#05080d,#0e1420 50%,#05080d);border:1px solid #1e2738;box-shadow:inset 0 3px 10px #000;touch-action:none}
@@ -97,7 +105,7 @@
   .lev .nm{font:800 10px Barlow,sans-serif;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;text-align:center}
   .lev.na .slot{opacity:.35}
   /* funkcje */
-  #fn{display:flex;flex-direction:column;padding:8px 10px 10px;min-height:280px}
+  #fn{display:flex;flex-direction:column;padding:8px 10px 10px;min-height:0}
   .seg{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none} .seg::-webkit-scrollbar{display:none}
   .seg button{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;border:1px solid var(--edge);background:#0A0F18;color:var(--dim);font:700 13px Barlow,sans-serif}
   .seg button svg{width:16px;height:16px} .seg button.on{color:var(--txt);border-color:var(--cyan);background:#0f2333;box-shadow:0 0 10px #38D6FF33}
@@ -188,6 +196,7 @@
     </div></div>
   </section>
 </div>
+<div id="grab" title="pokaż pasek"></div>
 <div class="dots"><i id="d0" class="on"></i><i id="d1"></i></div>
 <div id="toast"></div>
 <script>
@@ -200,6 +209,7 @@ function go(p) {
   $('t0').classList.toggle('on', p === 0); $('t1').classList.toggle('on', p === 1);
   $('d0').classList.toggle('on', p === 0); $('d1').classList.toggle('on', p === 1);
   try { localStorage.setItem('tswPage', p); } catch (_) {}
+  if (typeof showBar === 'function') showBar(2000);
 }
 $('t0').onclick = () => go(0); $('t1').onclick = () => go(1);
 function swipe(el) {   // przesunięcie palcem w bok (nie na dźwigniach i przyciskach)
@@ -212,8 +222,15 @@ function swipe(el) {   // przesunięcie palcem w bok (nie na dźwigniach i przyc
 }
 swipe(document);
 $('hud').addEventListener('load', () => { try { swipe($('hud').contentDocument); } catch (_) {} fit(); });
+function fitCab() {   // cały pulpit sterowania skalowany do ekranu (bez przewijania i ucinania)
+  const land = innerWidth > innerHeight, W = land ? 960 : 430, H = land ? 430 : 960;
+  const top = document.body.classList.contains('hid') ? 8 : 46, bottom = 6;
+  const k = Math.min(innerWidth / W, (innerHeight - top - bottom) / H);
+  $('cab').style.transform = `translate(${Math.max(0, (innerWidth - W * k) / 2)}px,${top}px) scale(${k})`;
+}
 function fit() {
-  const box = $('hudBox'), W = box.clientWidth - 8, H = box.clientHeight - ($('rot').offsetHeight + 16);
+  fitCab();
+  const box = $('hudBox'), W = box.clientWidth - 8, H = box.clientHeight - ($('rot').style.display === 'none' ? 8 : $('rot').offsetHeight + 16);
   const k = Math.min(W / 1280, Math.max(60, H) / 480);
   $('hudWrap').style.width = Math.round(1280 * k) + 'px'; $('hudWrap').style.height = Math.round(480 * k) + 'px';
   $('hud').style.transform = `scale(${k})`; $('rot').style.display = innerWidth > innerHeight ? 'none' : '';
@@ -221,6 +238,13 @@ function fit() {
 addEventListener('resize', fit); setTimeout(fit, 50);
 try { go(+localStorage.getItem('tswPage') || 0); } catch (_) {}
 
+// pasek kart chowa się po 3 s bez dotyku paska; wraca po dotknięciu górnej krawędzi i przy zmianie karty
+var hideT = null;   // var: go() wywołuje showBar wcześniej niż ta linia
+function showBar(ms = 3000) { document.body.classList.remove('hid'); fitCab(); clearTimeout(hideT); hideT = setTimeout(() => { document.body.classList.add('hid'); fitCab(); setTimeout(fit, 320); }, ms); setTimeout(fit, 320); }
+$('grab').addEventListener('pointerdown', (e) => { e.preventDefault(); showBar(4000); });
+document.querySelector('.tabs').addEventListener('pointerdown', () => showBar(4000));
+document.addEventListener('pointerdown', (e) => { if (e.clientY < 26 && document.body.classList.contains('hid')) showBar(4000); }, true);
+showBar(3000);
 const toast = (t, err) => { const e = $('toast'); e.textContent = t; e.className = 'show' + (err ? ' err' : ''); clearTimeout(toast.t); toast.t = setTimeout(() => { e.className = ''; }, err ? 3500 : 1600); };
 const buzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch (_) {} };
 
