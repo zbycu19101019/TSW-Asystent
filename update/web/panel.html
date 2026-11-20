@@ -81,6 +81,20 @@
       <iframe id="pwFrame" style="display:none" title="przygotowanie głosów"></iframe>
     </div>
 
+    <div class="card" style="grid-column:1/-1"><div class="k">Panel LED (Bluetooth, BK-Light ACT1025 64×16)</div>
+      <div class="row" style="align-items:flex-start;gap:16px">
+        <img id="ledPrev" src="/api/led/preview.png" alt="podgląd panelu" style="width:100%;max-width:512px;image-rendering:pixelated;border-radius:8px;border:1px solid var(--line)">
+        <div style="flex:1;min-width:260px">
+          <div><span class="dot" id="dLed"></span><span id="sLed">…</span></div>
+          <div class="row" style="margin-top:10px"><button id="ledScan">Szukaj paneli</button><button id="ledForget" style="display:none">Zapomnij panel</button></div>
+          <div id="ledList" style="margin-top:8px"></div>
+          <label class="hint" style="display:flex;gap:10px;align-items:center;margin-top:10px">Jasność <input type="range" id="ledBr" min="10" max="100" step="5" style="flex:1"> <span id="ledBrV"></span></label>
+          <div class="hint">Włącz panel blisko komputera. Panel przyjmuje jedno połączenie — zamknij aplikację panelu w telefonie.
+            Po sparowaniu program łączy się z nim sam przy każdym starcie. Podgląd obok pokazuje, co wyświetla panel.</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card"><div class="k">Aktualizacje</div>
       <div id="upMsg">…</div>
       <div class="row" style="margin-top:10px"><button id="upCheck">Sprawdź</button><button id="upApply" class="pri" disabled>Zainstaluj</button></div>
@@ -115,11 +129,12 @@ async function refresh() {
     $('#dataDir').textContent = info.dataDir;
     $('#auto').checked = !!info.autostart;
     const u = info.update || {};
-    const um = { off: 'Aktualizacje wyłączone — brak adresu (config.json → "updateUrl").', idle: 'Nie sprawdzano.', latest: 'Masz najnowszą wersję.',
-      available: `Dostępna wersja ${u.latest} (${u.files} plików). ${u.notes || ''}`, downloading: 'Pobieram i sprawdzam pliki…', done: u.msg, error: u.msg };
+    const um = { off: 'Aktualizacje wyłączone — brak adresu (config.json → "updateUrl").', idle: 'Nie sprawdzano.', latest: (u.msg ? u.msg[0].toUpperCase() + u.msg.slice(1) : 'Masz najnowszą wersję') + '.',
+      available: u.msg ? `${u.msg} (${u.files} plików).` : `Dostępna wersja ${u.latest} (${u.files} plików). ${u.notes || ''}`, downloading: 'Pobieram i sprawdzam pliki…', done: u.msg, error: u.msg };
     $('#upMsg').textContent = um[u.state] || u.msg || '';
     $('#upApply').disabled = u.state !== 'available';
     if (st.lastCmd && st.lastCmd.result) $('#cmdRes').textContent = st.lastCmd.result;
+    renderLed(info.led || {});
   } catch (_) { dot($('#dGame'), 'bad'); $('#sGame').textContent = 'program nie odpowiada'; }
 }
 document.querySelectorAll('[data-cmd]').forEach((b) => b.onclick = async () => {
@@ -145,6 +160,25 @@ addEventListener('message', (e) => {
   if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
   if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
 });
+// ---- panel LED ----
+const esc = (s) => String(s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+function renderLed(L) {
+  const st = { connected: 'ok', connecting: 'warn', error: 'bad', off: '', unavailable: 'bad' }[L.state] || '';
+  dot($('#dLed'), st);
+  $('#sLed').textContent = L.state === 'off' && !L.address ? (L.msg || 'brak sparowanego panelu') : (L.name ? L.name + ' — ' : '') + (L.msg || L.state) + (L.state === 'connected' && L.fps ? ` (${L.fps} kl/s)` : '');
+  $('#ledForget').style.display = L.address ? '' : 'none';
+  $('#ledScan').disabled = !!L.scanning || L.state === 'unavailable';
+  $('#ledScan').textContent = L.scanning ? 'Szukam…' : 'Szukaj paneli';
+  if (document.activeElement !== $('#ledBr')) { $('#ledBr').value = L.brightness || 60; $('#ledBrV').textContent = (L.brightness || 60) + '%'; }
+  $('#ledList').innerHTML = (L.found || []).map((d) => `<div class="row" style="margin:4px 0"><button data-addr="${esc(d.address)}" data-name="${esc(d.name)}" class="${d.address === L.address ? '' : 'pri'}">${d.address === L.address ? 'Sparowany' : 'Paruj'}</button>
+    <span>${esc(d.name)} <span class="hint">${esc(d.address)} · sygnał ${d.rssi ?? '?'} dBm</span></span></div>`).join('');
+  $('#ledList').querySelectorAll('button[data-addr]').forEach((b) => b.onclick = async () => { await post('/api/led', { action: 'pair', address: b.dataset.addr, name: b.dataset.name }); toast('Paruję z ' + b.dataset.name); refresh(); });
+}
+$('#ledScan').onclick = async () => { await post('/api/led', { action: 'scan' }); refresh(); setTimeout(refresh, 6500); };
+$('#ledForget').onclick = async () => { if (!confirm('Zapomnieć panel LED? Program przestanie się z nim łączyć.')) return; await post('/api/led', { action: 'forget' }); refresh(); };
+$('#ledBr').oninput = (e) => { $('#ledBrV').textContent = e.target.value + '%'; };
+$('#ledBr').onchange = async (e) => { await post('/api/led', { action: 'brightness', pct: +e.target.value }); };
+setInterval(() => { $('#ledPrev').src = '/api/led/preview.png?t=' + Date.now(); }, 1000);
 refresh(); setInterval(refresh, 2500);
 </script>
 </body>

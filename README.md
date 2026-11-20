@@ -8,8 +8,9 @@ pulpit maszynisty i podgląd jazdy na telefonie / tablecie w tej samej sieci Wi-
 **[Najnowsze wydanie → Releases](../../releases/latest)** — plik `TSW-Asystent-<wersja>.zip`.
 
 1. Rozpakuj cały folder i uruchom `TSW-Asystent.exe` (SmartScreen: „Więcej informacji” → „Uruchom mimo to”).
-2. Otworzy się panel w przeglądarce — kliknij **„Uruchom grę + rozkład”** (gra startuje z telemetrią `-HTTPAPI`).
+2. Otworzy się okno programu — kliknij **„Uruchom grę + rozkład”** (gra startuje z telemetrią `-HTTPAPI`).
 3. Telefon / tablet: zainstaluj `TSW-Ekran.apk` z folderu programu → „Szukaj w sieci”.
+4. Panel LED BK-Light ACT1025 (opcjonalnie): w oknie programu „Panel LED” → „Szukaj paneli” → „Paruj”.
 
 Szczegóły: `CZYTAJ-MNIE.txt` w paczce.
 

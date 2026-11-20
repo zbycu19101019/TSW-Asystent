@@ -8,7 +8,7 @@ CO TO JEST
 
 URUCHOMIENIE
   1. Rozpakuj cały folder (np. do Dokumenty\TSW-Asystent). Nie uruchamiaj exe z wnętrza pliku zip.
-  2. Uruchom TSW-Asystent.exe. Otworzy się panel w przeglądarce (http://127.0.0.1:31280/).
+  2. Uruchom TSW-Asystent.exe. Otworzy się okno programu (panel). Zamknięcie okna kończy program.
      Windows SmartScreen może ostrzec o nieznanym wydawcy — „Więcej informacji” → „Uruchom mimo to”.
      Zapora Windows zapyta o dostęp do sieci — zaznacz „Sieci prywatne” (potrzebne tylko dla telefonu/tabletu).
   3. W panelu kliknij „Uruchom grę + rozkład”. Gra startuje z telemetrią (parametr -HTTPAPI), rozkład otwiera się
@@ -17,6 +17,11 @@ URUCHOMIENIE
      (albo raz w Steamie: Train Sim World 7 → Właściwości → Opcje uruchamiania: -HTTPAPI).
      Jeśli program nie znajdzie gry: wpisz ścieżkę do TrainSimWorld.exe w config.json (pole "gameExe").
   4. Wsiądź do kabiny — lektor zaczyna mówić. Kliknij raz w okno rozkładu, jeśli przeglądarka blokuje dźwięk.
+
+PANEL LED (opcjonalnie)
+  Panel BK-Light ACT1025 64×16 (Bluetooth): okno programu → „Panel LED” → „Szukaj paneli” → „Paruj”.
+  Panel pokazuje prędkość (na czerwono przy przekroczeniu), znak limitu, następny limit z odległością i kolor semafora.
+  Program pamięta panel i łączy się z nim sam. Panel przyjmuje jedno połączenie — zamknij jego aplikację w telefonie.
 
 GŁOSY
   Lektor korzysta z syntezy mowy online (Microsoft Edge TTS) — potrzebny internet. Każdy tekst pobierany jest raz
