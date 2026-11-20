@@ -2,83 +2,158 @@
 <html lang="pl" translate="no">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#05070C">
-<title>TSW Ekran — na żywo</title>
+<title>TSW Ekran</title>
 <style>
-  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E}
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:16px/1.3 "Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden}
-  .app{display:grid;grid-template-rows:auto 1fr auto;height:100%;padding:max(10px,env(safe-area-inset-top)) 14px max(10px,env(safe-area-inset-bottom))}
-  .top{display:flex;justify-content:space-between;align-items:center;color:var(--dim);font-size:14px;gap:10px}
-  .top b{color:var(--txt)}
-  #conn{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:6px}
-  #conn.on{background:var(--green)}
-  .main{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center;min-height:0}
-  @media (orientation:landscape){.main{grid-template-columns:1.2fr 1fr 1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:center;min-width:0}
-  .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
-  .speed{grid-row:span 2;align-items:center;text-align:center}
-  .speed .v{font-size:clamp(64px,22vw,150px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
-  .speed .u{color:var(--dim);font-size:16px}
-  .speed.over .v{color:var(--red)}
-  .lim{display:flex;align-items:center;gap:12px}
-  .disc{width:64px;height:64px;border-radius:50%;border:7px solid var(--red);background:#fff;color:#111;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;flex:none}
-  .val{font-size:28px;font-weight:800}
-  .sub{color:var(--dim);font-size:14px}
-  .sig .asp{font-size:24px;font-weight:800}
-  .Clear{color:var(--green)} .Approach,.Restricted{color:var(--acc)} .Stop{color:var(--red)}
-  .msgs{margin-top:10px;max-height:32vh;overflow:hidden;display:flex;flex-direction:column-reverse;gap:6px}
-  .m{background:#0A0F18;border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:10px;padding:8px 10px;font-size:15px}
-  .m.crit{border-left-color:var(--red)} .m.warn{border-left-color:var(--acc)} .m .t{color:var(--dim);font-size:12px;margin-right:6px}
-  #idle{grid-column:1/-1;text-align:center;color:var(--dim);font-size:18px;display:none}
+  :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E;--orange:#FF9F40}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:16px/1.3 "Segoe UI",Roboto,system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:pan-y}
+  .tabs{position:fixed;left:0;right:0;top:0;height:40px;display:flex;align-items:center;gap:6px;padding:max(4px,env(safe-area-inset-top)) 10px 4px;z-index:5;background:linear-gradient(#05070Cee,#05070C00)}
+  .tabs button{flex:0 0 auto;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:#0A0F18;color:var(--dim);font:700 14px inherit}
+  .tabs button.on{background:var(--acc);border-color:var(--acc);color:#111}
+  .tabs .st{margin-left:auto;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+  #conn{width:9px;height:9px;border-radius:50%;background:var(--red)} #conn.on{background:var(--green)}
+  .track{position:fixed;inset:0;display:flex;width:200vw;transition:transform .28s ease}
+  .page{width:100vw;height:100%;position:relative;overflow:hidden}
+  /* karta 1: pulpit z Ekranika (1280×480) przeskalowany do ekranu */
+  #hudBox{position:absolute;left:0;right:0;top:44px;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #hudWrap{position:relative;overflow:hidden;border-radius:10px;box-shadow:0 0 0 1px var(--line)}
+  #hud{width:1280px;height:480px;border:0;transform-origin:0 0;position:absolute;left:0;top:0;background:#05070C}
+  #rot{color:var(--dim);font-size:13px;text-align:center;padding:0 16px}
+  /* karta 2: sterowanie */
+  #ctl{position:absolute;inset:44px 0 0 0;overflow-y:auto;padding:6px 12px max(12px,env(safe-area-inset-bottom));touch-action:pan-y}
+  .msg{min-height:20px;font-size:13px;color:var(--dim);margin:2px 0 8px}
+  .msg.err{color:var(--orange)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media (orientation:landscape){.grid{grid-template-columns:repeat(4,1fr)}}
+  .b{padding:16px 8px;border-radius:16px;border:1px solid var(--line);background:#121A28;color:var(--txt);font:700 16px inherit;text-align:center;touch-action:none}
+  .b small{display:block;color:var(--dim);font-size:11px;font-weight:600;margin-top:3px}
+  .b.act{background:#24324a;border-color:var(--cyan);transform:scale(.97)}
+  .b.up{border-color:#2f6e55} .b.down{border-color:#6e4a2f}
+  .b.em{grid-column:1/-1;background:#3a0d14;border-color:var(--red);color:#ffd6db;font-size:18px;padding:18px}
+  .sec{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:14px 2px 8px}
+  .pair{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .pair input{width:100%;font:700 28px/1 "Segoe UI",Roboto,sans-serif;letter-spacing:.3em;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);margin:10px 0}
+  .pair button{width:100%;padding:14px;border-radius:12px;border:0;background:var(--acc);color:#111;font:800 16px inherit}
+  .dots{position:fixed;left:0;right:0;bottom:max(6px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none}
+  .dots i{width:7px;height:7px;border-radius:50%;background:#2a3446} .dots i.on{background:var(--acc)}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="top"><span><span id="conn"></span><b id="svc">TSW Ekran</b></span><span id="clock"></span></div>
-  <div class="main" id="main">
-    <div class="card speed" id="spd"><div class="k">Prędkość</div><div class="v" id="v">–</div><div class="u">km/h</div></div>
-    <div class="card"><div class="k">Limit</div><div class="lim"><div class="disc" id="lim">–</div><div><div class="val" id="nx">–</div><div class="sub" id="nxd">następny limit</div></div></div></div>
-    <div class="card sig"><div class="k">Semafor</div><div class="asp" id="sg">–</div><div class="sub" id="sgd"></div></div>
-    <div class="card"><div class="k">Jazda</div><div class="val" id="km">–</div><div class="sub" id="trip"></div></div>
-    <div id="idle"></div>
-  </div>
-  <div class="msgs" id="msgs"></div>
+<div class="tabs"><button id="t0" class="on">Pulpit</button><button id="t1">Sterowanie</button><span class="st"><span id="conn"></span><span id="svc"></span></span></div>
+<div class="track" id="track">
+  <section class="page">
+    <div id="hudBox"><div id="hudWrap"><iframe id="hud" src="/tsw.html" title="pulpit maszynisty"></iframe></div>
+      <div id="rot">Obróć telefon poziomo — pulpit będzie większy. Przesuń palcem w bok — sterowanie.</div></div>
+  </section>
+  <section class="page">
+    <div id="ctl">
+      <div class="msg" id="cmsg">Przytrzymaj przycisk, żeby trzymać dźwignię. Klawisze trafiają tylko do okna gry na PC.</div>
+      <div id="pairBox" class="pair" style="display:none">
+        <b>Sparuj telefon ze sterowaniem</b>
+        <div class="msg">Wpisz 6-cyfrowy kod z okna TSW Asystenta na PC (karta „Sterowanie z telefonu”).</div>
+        <input id="pin" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+        <button id="pairGo">Sparuj</button>
+      </div>
+      <div id="btns"></div>
+    </div>
+  </section>
 </div>
+<div class="dots"><i id="d0" class="on"></i><i id="d1"></i></div>
 <script>
-/* Podgląd jazdy na żywo z TSW Asystenta (PC w tej samej sieci). Strumień: /api/live/stream (SSE), zapas: /api/live co 1 s. */
-const $ = (s) => document.getElementById(s);
-const ASP = { Clear: 'wolna droga', Approach: 'ostrzegawczy', Restricted: 'ograniczony', Stop: 'STÓJ' };
-const dist = (m) => m == null ? '' : m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m / 10) * 10 + ' m';
-let lastAt = 0, es = null;
-function render(d) {
-  lastAt = Date.now(); $('conn').className = 'on';
-  const run = d.running;
-  $('idle').style.display = run ? 'none' : 'block'; $('idle').textContent = run ? '' : (d.problem || 'czekam na jazdę…');
-  $('svc').textContent = d.service || 'TSW Ekran';
-  $('clock').textContent = d.gameTime ? String(d.gameTime).slice(11, 16) : '';
-  const v = d.speed == null ? null : Math.abs(d.speed);
-  $('v').textContent = v == null ? '–' : Math.round(v);
-  $('spd').classList.toggle('over', v != null && d.limit != null && v > d.limit + 3);
-  $('lim').textContent = d.limit == null ? '–' : Math.round(d.limit);
-  $('nx').textContent = d.next && d.next.kmh != null ? Math.round(d.next.kmh) + ' km/h' : '–';
-  $('nxd').textContent = d.next ? 'za ' + dist(d.next.dist) : 'następny limit';
-  const a = d.signal && d.signal.aspect; $('sg').textContent = a ? (ASP[a] || a) : '–'; $('sg').className = 'asp ' + (a || '');
-  $('sgd').textContent = d.signal && d.signal.dist ? dist(d.signal.dist) : '';
-  const t = d.trip || {}; $('km').textContent = t.km != null ? t.km.toFixed(1).replace('.', ',') + ' km' : '–';
-  $('trip').textContent = [t.vmax ? 'max ' + t.vmax + ' km/h' : '', t.overspeeds ? 'przekroczeń: ' + t.overspeeds : '', d.lastStop && d.lastStop.station ? 'postój: ' + d.lastStop.station : ''].filter(Boolean).join(' · ');
-  $('msgs').innerHTML = (d.said || []).slice(-4).reverse().map((m) => `<div class="m ${m.lvl}"><span class="t">${new Date(m.t).toTimeString().slice(0, 5)}</span>${m.text.replace(/[<&]/g, (c) => c === '<' ? '&lt;' : '&amp;')}</div>`).join('');
+/* TSW Ekran (telefon / tablet): karta 1 = pulpit maszynisty z Ekranika (tsw.html), karta 2 = sterowanie pociągiem.
+   Przesunięcie palcem w bok (w obie strony) przełącza karty. Sterowanie: parowanie kodem z PC, potem stała lista poleceń. */
+const $ = (id) => document.getElementById(id);
+let page = 0;
+function go(p) {
+  page = p; $('track').style.transform = `translateX(${-p * 100}vw)`;
+  $('t0').classList.toggle('on', p === 0); $('t1').classList.toggle('on', p === 1);
+  $('d0').classList.toggle('on', p === 0); $('d1').classList.toggle('on', p === 1);
+  try { localStorage.setItem('tswPage', p); } catch (_) {}
 }
-function connect() {
-  try { es && es.close(); } catch (_) {}
-  if (window.EventSource) { es = new EventSource('/api/live/stream'); es.onmessage = (e) => { try { render(JSON.parse(e.data)); } catch (_) {} }; es.onerror = () => { $('conn').className = ''; }; }
+$('t0').onclick = () => go(0); $('t1').onclick = () => go(1);
+// przesunięcie palcem: na stronie i w ramce pulpitu (ta sama domena — można słuchać jej dotyku)
+function swipe(el) {
+  let x0 = null, y0 = 0, t0 = 0;
+  el.addEventListener('touchstart', (e) => { if (e.target.closest && e.target.closest('.b')) { x0 = null; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (x0 == null) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - t0 < 800) go(page === 0 ? 1 : 0);
+  }, { passive: true });
 }
-setInterval(() => { if (Date.now() - lastAt > 3000) { $('conn').className = ''; fetch('/api/live').then((r) => r.json()).then(render).catch(() => {}); if (Date.now() - lastAt > 10000) connect(); } }, 1000);
-connect();
-// ekran nie gaśnie (o ile przeglądarka pozwala)
-const wake = () => { try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (_) {} };
-document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); }); wake();
+swipe(document);
+$('hud').addEventListener('load', () => { try { swipe($('hud').contentDocument); } catch (_) {} fit(); });
+// pulpit 1280×480 dopasowany do ekranu (cały widoczny)
+function fit() {
+  const box = $('hudBox'), W = box.clientWidth - 8, H = box.clientHeight - ($('rot').offsetHeight + 16);
+  const k = Math.min(W / 1280, Math.max(60, H) / 480);
+  $('hudWrap').style.width = Math.round(1280 * k) + 'px'; $('hudWrap').style.height = Math.round(480 * k) + 'px';
+  $('hud').style.transform = `scale(${k})`;
+  $('rot').style.display = innerWidth > innerHeight ? 'none' : '';
+}
+addEventListener('resize', fit); setTimeout(fit, 50);
+try { go(+localStorage.getItem('tswPage') || 0); } catch (_) {}
+
+// stan połączenia i pociąg (nagłówek)
+let lastOk = 0;
+setInterval(() => fetch('/api/live', { cache: 'no-store' }).then((r) => r.json()).then((d) => { lastOk = Date.now(); $('conn').className = 'on'; $('svc').textContent = d.running ? (d.service || '') + ' · ' + Math.round(Math.abs(d.speed || 0)) + ' km/h' : (d.problem || 'czekam na jazdę'); })
+  .catch(() => {}).finally(() => { if (Date.now() - lastOk > 4000) $('conn').className = ''; }), 1500);
+
+// ---- sterowanie ----
+let token = ''; try { token = localStorage.getItem('tswToken') || ''; } catch (_) {}
+const say = (t, err) => { $('cmsg').textContent = t; $('cmsg').className = 'msg' + (err ? ' err' : ''); };
+const showPair = (on) => { $('pairBox').style.display = on ? '' : 'none'; $('btns').style.display = on ? 'none' : ''; };
+async function send(cmd, act) {
+  try {
+    const r = await fetch('/api/phone/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, cmd, act }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { token = ''; try { localStorage.removeItem('tswToken'); } catch (_) {} showPair(true); say('Telefon nie jest sparowany — wpisz kod z PC.', true); return false; }
+    if (!r.ok) { say(j.msg || ('błąd ' + r.status), true); return false; }
+    return true;
+  } catch (_) { say('brak połączenia z PC', true); return false; }
+}
+const GROUPS = [
+  ['Jazda', ['throttle_up', 'throttle_down', 'brake_release', 'brake_apply', 'dyn_down', 'dyn_up']],
+  ['Kierunek', ['rev_fwd', 'rev_back']],
+  ['Kabina', ['alerter', 'horn', 'lights', 'wipers', 'sander', 'panto']],
+];
+async function build() {
+  const j = await fetch('/api/phone/controls', { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+  if (!j) { say('brak połączenia z PC', true); return; }
+  if (!j.enabled) { say('Sterowanie z telefonu jest wyłączone w programie na PC.', true); $('btns').innerHTML = ''; return; }
+  const by = Object.fromEntries(j.commands.map((c) => [c.cmd, c]));
+  let html = `<div class="grid"><button class="b em" data-cmd="emergency">NAGŁE HAMOWANIE<small>klawisz ${by.emergency.key}</small></button></div>`;
+  for (const [title, ids] of GROUPS) {
+    html += `<div class="sec">${title}</div><div class="grid">` + ids.filter((i) => by[i]).map((i) => { const c = by[i];
+      const cls = /_up$|release|fwd/.test(i) ? 'up' : /_down$|apply|back/.test(i) ? 'down' : '';
+      return `<button class="b ${cls}" data-cmd="${i}" data-hold="${c.hold ? 1 : 0}">${c.label}<small>${c.hold ? 'przytrzymaj · ' : ''}klawisz ${c.key}</small></button>`; }).join('') + '</div>';
+  }
+  $('btns').innerHTML = html;
+  $('btns').querySelectorAll('.b').forEach(bind);
+  showPair(!token);
+}
+function bind(b) {
+  const cmd = b.dataset.cmd, hold = b.dataset.hold === '1';
+  let timer = null, down = false;
+  const start = async (e) => {
+    e.preventDefault(); if (down) return; down = true; b.classList.add('act'); try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
+    if (!hold) { await send(cmd, 'tap'); return; }
+    if (await send(cmd, 'down')) timer = setInterval(() => send(cmd, 'down'), 500);   // „nadal trzymam” — PC puszcza klawisz po 1,5 s bez tego
+  };
+  const end = () => { if (!down) return; down = false; b.classList.remove('act'); clearInterval(timer); timer = null; if (hold) send(cmd, 'up'); };
+  b.addEventListener('pointerdown', start); ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => b.addEventListener(ev, end));
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+$('pairGo').onclick = async () => {
+  const pin = $('pin').value.replace(/\D/g, '');
+  const r = await fetch('/api/phone/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin, name: (navigator.userAgent.match(/;\s*([^;)]+)\s+Build/) || [, 'telefon'])[1] }) }).catch(() => null);
+  const j = r ? await r.json().catch(() => ({})) : {};
+  if (j.ok && j.token) { token = j.token; try { localStorage.setItem('tswToken', token); } catch (_) {} $('pin').value = ''; showPair(false); say('Sparowano — możesz sterować.'); }
+  else say(j.msg || 'brak połączenia z PC', true);
+};
+build();
+document.addEventListener('visibilitychange', () => { if (document.hidden) document.querySelectorAll('.b.act').forEach((b) => b.dispatchEvent(new Event('pointerup'))); });
 </script>
 </body>
 </html>

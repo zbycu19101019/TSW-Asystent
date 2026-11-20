@@ -29,9 +29,13 @@ GŁOSY
   Bez internetu lektor mówi głosem Windows.
 
 TELEFON / TABLET
-  Aplikacja Android „TSW Ekran” (plik TSW-Ekran.apk): „Szukaj” znajduje komputer sama, albo wpisz adres z panelu.
-  Bez aplikacji: w przeglądarce telefonu otwórz adres z panelu (http://<adres PC>:31280/live.html).
-  Telefon tylko PODGLĄDA jazdę — nie może zmieniać ustawień ani sterować komputerem.
+  Aplikacja Android „TSW Ekran” (plik TSW-Ekran.apk): „Szukaj w sieci” znajduje komputer sama, albo wpisz adres z okna programu.
+  Karta „Pulpit”: pulpit maszynisty (obróć telefon poziomo). Przesuń palcem w bok — karta „Sterowanie”.
+  Sterowanie: sparuj telefon kodem z okna programu (karta „Sterowanie z telefonu”), potem przyciski nastawnika, hamulców,
+  nawrotnika, czuwaka, syreny, świateł… Program wciska klawisze gry (domyślne skróty TSW) tylko w trakcie jazdy
+  i tylko do okna Train Sim World. Inne klawisze: config.json → "controlKeys". Wyłączenie: odznacz w oknie programu.
+  Bez aplikacji: w przeglądarce telefonu otwórz adres z okna programu (http://<adres PC>:31280/live.html).
+  Telefon nie łączy się? W oknie programu kliknij „Zezwól w zaporze Windows”.
 
 GDZIE SĄ MOJE DANE
   %APPDATA%\TSW-Asystent  (panel → „Folder danych”)
