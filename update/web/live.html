@@ -36,6 +36,13 @@
   .pair{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
   .pair input{width:100%;font:700 28px/1 "Segoe UI",Roboto,sans-serif;letter-spacing:.3em;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);margin:10px 0}
   .pair button{width:100%;padding:14px;border-radius:12px;border:0;background:var(--acc);color:#111;font:800 16px inherit}
+  .stat{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 12px;margin-bottom:6px}
+  .stat b{font-size:24px;font-weight:800;display:block;line-height:1} .stat small{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+  .stat .bars{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;font-size:11px;color:var(--dim)}
+  .stat i{height:8px;border-radius:4px;background:#1a2232;overflow:hidden;display:block} .stat s{display:block;height:100%;width:0;background:var(--green);transition:width .2s}
+  .stat s.br{background:var(--orange)} .stat.over #sV{color:var(--red)}
+  .b.macro{border-style:dashed} .b.alarm{animation:al .5s infinite alternate} @keyframes al{to{background:#7a0f1d;border-color:var(--red)}}
+  .b.em{position:relative;overflow:hidden} .b.em .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#ff3b4e55;pointer-events:none}
   .dots{position:fixed;left:0;right:0;bottom:max(6px,env(safe-area-inset-bottom));display:flex;justify-content:center;gap:6px;z-index:5;pointer-events:none}
   .dots i{width:7px;height:7px;border-radius:50%;background:#2a3446} .dots i.on{background:var(--acc)}
 </style>
@@ -49,6 +56,11 @@
   </section>
   <section class="page">
     <div id="ctl">
+      <div id="stat" class="stat">
+        <div><b id="sV">–</b><small>km/h</small></div><div><b id="sL">–</b><small>limit</small></div>
+        <div class="bars"><span>Nastawnik</span><i><s id="sP"></s></i><span>Hamulec</span><i><s id="sB" class="br"></s></i></div>
+        <div><b id="sD">–</b><small>kierunek</small></div>
+      </div>
       <div class="msg" id="cmsg">Przytrzymaj przycisk, żeby trzymać dźwignię. Klawisze trafiają tylko do okna gry na PC.</div>
       <div id="pairBox" class="pair" style="display:none">
         <b>Sparuj telefon ze sterowaniem</b>
@@ -113,38 +125,61 @@ async function send(cmd, act) {
     return true;
   } catch (_) { say('brak połączenia z PC', true); return false; }
 }
-const GROUPS = [
-  ['Jazda', ['throttle_up', 'throttle_down', 'brake_release', 'brake_apply', 'dyn_down', 'dyn_up']],
-  ['Kierunek', ['rev_fwd', 'rev_back']],
-  ['Kabina', ['alerter', 'horn', 'lights', 'wipers', 'sander', 'panto']],
-];
+const GROUP_NAMES = { jazda: 'Jazda', kierunek: 'Kierunek', kabina: 'Kabina', drzwi: 'Drzwi', widok: 'Widok i gra', 'własne': 'Własne' };
 async function build() {
   const j = await fetch('/api/phone/controls', { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
   if (!j) { say('brak połączenia z PC', true); return; }
   if (!j.enabled) { say('Sterowanie z telefonu jest wyłączone w programie na PC.', true); $('btns').innerHTML = ''; return; }
-  const by = Object.fromEntries(j.commands.map((c) => [c.cmd, c]));
-  let html = `<div class="grid"><button class="b em" data-cmd="emergency">NAGŁE HAMOWANIE<small>klawisz ${by.emergency.key}</small></button></div>`;
-  for (const [title, ids] of GROUPS) {
-    html += `<div class="sec">${title}</div><div class="grid">` + ids.filter((i) => by[i]).map((i) => { const c = by[i];
-      const cls = /_up$|release|fwd/.test(i) ? 'up' : /_down$|apply|back/.test(i) ? 'down' : '';
-      return `<button class="b ${cls}" data-cmd="${i}" data-hold="${c.hold ? 1 : 0}">${c.label}<small>${c.hold ? 'przytrzymaj · ' : ''}klawisz ${c.key}</small></button>`; }).join('') + '</div>';
+  const em = j.commands.find((c) => c.cmd === 'emergency');
+  let html = em ? `<div class="grid"><button class="b em" data-cmd="emergency" data-mode="long"><span class="fill"></span>NAGŁE HAMOWANIE<small>przytrzymaj ½ s · klawisz ${em.key}</small></button></div>` : '';
+  for (const g of Object.keys(GROUP_NAMES)) {
+    const list = j.commands.filter((c) => c.group === g); if (!list.length) continue;
+    html += `<div class="sec">${GROUP_NAMES[g]}</div><div class="grid">` + list.map((c) => {
+      const cls = /_up$|release|fwd|_off$/.test(c.cmd) ? 'up' : /_down$|apply|back|_zero$/.test(c.cmd) ? 'down' : '';
+      const hint = c.mode === 'hold' ? 'przytrzymaj · ' : c.mode === 'macro' ? 'automatycznie do zera · ' : '';
+      return `<button class="b ${cls} ${c.mode === 'macro' ? 'macro' : ''}" data-cmd="${c.cmd}" data-mode="${c.mode}">${c.label}<small>${hint}klawisz ${c.key}</small></button>`; }).join('') + '</div>';
   }
   $('btns').innerHTML = html;
   $('btns').querySelectorAll('.b').forEach(bind);
   showPair(!token);
 }
 function bind(b) {
-  const cmd = b.dataset.cmd, hold = b.dataset.hold === '1';
-  let timer = null, down = false;
+  const cmd = b.dataset.cmd, mode = b.dataset.mode;
+  let timer = null, down = false, longT = null;
+  const fill = b.querySelector('.fill');
   const start = async (e) => {
     e.preventDefault(); if (down) return; down = true; b.classList.add('act'); try { navigator.vibrate && navigator.vibrate(12); } catch (_) {}
-    if (!hold) { await send(cmd, 'tap'); return; }
+    if (mode === 'long') {   // nagłe hamowanie: przytrzymać 0,5 s (bez przypadkowego dotknięcia)
+      if (fill) { fill.style.transition = 'width .5s linear'; fill.style.width = '100%'; }
+      longT = setTimeout(async () => { longT = null; try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch (_) {} if (await send(cmd, 'tap')) say('Nagłe hamowanie wysłane.'); }, 500);
+      return;
+    }
+    if (mode !== 'hold') { if (await send(cmd, 'tap') && mode === 'macro') say(b.firstChild.textContent + ' — trzymam klawisz, aż gra pokaże zero.'); return; }
     if (await send(cmd, 'down')) timer = setInterval(() => send(cmd, 'down'), 500);   // „nadal trzymam” — PC puszcza klawisz po 1,5 s bez tego
   };
-  const end = () => { if (!down) return; down = false; b.classList.remove('act'); clearInterval(timer); timer = null; if (hold) send(cmd, 'up'); };
+  const end = () => {
+    if (!down) return; down = false; b.classList.remove('act'); clearInterval(timer); timer = null;
+    if (longT) { clearTimeout(longT); longT = null; say('Za krótko — przytrzymaj nagłe hamowanie pół sekundy.'); }
+    if (fill) { fill.style.transition = 'none'; fill.style.width = '0'; }
+    if (mode === 'hold') send(cmd, 'up');
+  };
   b.addEventListener('pointerdown', start); ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => b.addEventListener(ev, end));
   b.addEventListener('contextmenu', (e) => e.preventDefault());
 }
+// pasek stanu na karcie sterowania (co 0,5 s, tylko gdy karta widoczna)
+setInterval(() => {
+  if (page !== 1 || document.hidden) return;
+  fetch('/api/live', { cache: 'no-store' }).then((r) => r.json()).then((d) => {
+    const v = d.speed == null ? null : Math.abs(d.speed);
+    $('sV').textContent = v == null ? '–' : Math.round(v); $('sL').textContent = d.limit == null ? '–' : Math.round(d.limit);
+    $('stat').classList.toggle('over', v != null && d.limit != null && v > d.limit + 3);
+    $('sP').style.width = Math.round(Math.max(0, Math.min(1, d.power || 0)) * 100) + '%';
+    $('sB').style.width = Math.round(Math.max(0, Math.min(1, d.brake || 0)) * 100) + '%';
+    $('sD').textContent = d.direction > 0 ? 'PRZÓD' : d.direction < 0 ? 'TYŁ' : 'N';
+    const al = document.querySelector('[data-cmd="alerter"]'); if (al) al.classList.toggle('alarm', (d.alerter || 0) > 0);
+  }).catch(() => {});
+}, 500);
+setInterval(() => { if (page === 1 && !document.hidden && !document.querySelector('.b.act')) build(); }, 30000);   // nowe klawisze / przyciski z PC
 $('pairGo').onclick = async () => {
   const pin = $('pin').value.replace(/\D/g, '');
   const r = await fetch('/api/phone/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pin, name: (navigator.userAgent.match(/;\s*([^;)]+)\s+Build/) || [, 'telefon'])[1] }) }).catch(() => null);
