@@ -7,7 +7,8 @@ CO TO JEST
   Języki lektora: polski, niemiecki, angielski (GB / US).
 
 URUCHOMIENIE
-  1. Rozpakuj cały folder (np. do Dokumenty\TSW-Asystent). Nie uruchamiaj exe z wnętrza pliku zip.
+  1. Najprościej: uruchom TSW-Asystent-Setup-<wersja>.exe (instalacja dla Twojego konta, skróty, deinstalacja w Ustawienia →
+     Aplikacje). Wersja bez instalacji: rozpakuj cały folder z zipa (nie uruchamiaj exe z wnętrza zipa).
   2. Uruchom TSW-Asystent.exe. Otworzy się okno programu (panel). Zamknięcie okna kończy program.
      Windows SmartScreen może ostrzec o nieznanym wydawcy — „Więcej informacji” → „Uruchom mimo to”.
      Zapora Windows zapyta o dostęp do sieci — zaznacz „Sieci prywatne” (potrzebne tylko dla telefonu/tabletu).
@@ -29,7 +30,8 @@ GŁOSY
   Bez internetu lektor mówi głosem Windows.
 
 TELEFON / TABLET
-  Aplikacja Android „TSW Ekran” (plik TSW-Ekran.apk): „Szukaj w sieci” znajduje komputer sama, albo wpisz adres z okna programu.
+  Aplikacja Android „TSW Ekran”: w oknie programu zeskanuj kod QR aparatem telefonu — pobierze się TSW-Ekran.apk (telefon zapyta
+  o zgodę na instalację z tego źródła). Po uruchomieniu aplikacja sama znajduje komputer w sieci.
   Karta „Pulpit”: pulpit maszynisty (obróć telefon poziomo). Przesuń palcem w bok — karta „Sterowanie”.
   Sterowanie: sparuj telefon kodem z okna programu (karta „Sterowanie z telefonu”). Dźwignie nastawnika i hamulców przesuwasz
   palcem — program sam dociąga dźwignię w grze do tej pozycji. Nawrotnik TYŁ / N / PRZÓD, duże przyciski i zakładki funkcji:

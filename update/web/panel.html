@@ -61,7 +61,13 @@
     </div>
 
     <div class="card lan"><div class="k">Telefon / tablet (ta sama sieć Wi-Fi)</div>
-      <div id="lanBox">…</div>
+      <div class="row" style="align-items:flex-start;gap:16px;flex-wrap:nowrap">
+        <div id="qrBox" style="display:none;text-align:center;flex:none"><img id="qr" alt="kod QR" style="width:150px;height:150px;border-radius:10px;border:1px solid var(--line);background:#0A0F18">
+          <div class="hint" style="margin-top:4px">Zeskanuj aparatem —<br>pobierz aplikację</div></div>
+        <div style="min-width:0"><div id="lanBox">…</div>
+          <div class="hint" id="apkHint" style="display:none">Aplikacja <b>TSW Ekran</b> na Androida: zeskanuj kod QR aparatem telefonu, pobierz i zainstaluj
+            (telefon zapyta o zgodę na instalację z tego źródła). Potem otwórz ją — sama znajdzie ten komputer.</div></div>
+      </div>
       <div id="fwBox" style="display:none;margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--acc);background:#2a2412">
         <b>Zapora Windows blokuje telefon.</b> <span class="hint" style="margin:0">Program działa, ale połączenia z sieci są zatrzymywane.</span>
         <div class="row" style="margin-top:8px"><button class="pri" id="fwAllow">Zezwól w zaporze Windows</button></div>
@@ -154,6 +160,8 @@ async function refresh() {
     $('#sTts').textContent = info.tts ? 'lektor: głos online (Edge TTS) + pamięć nagrań' : 'lektor: tylko głos Windows (brak syntezy online)';
     $('#lanBox').innerHTML = info.lan ? (info.lanUrls.length ? info.lanUrls.map((u) => `<code>${u}</code>`).join('<br>') : 'brak połączenia z siecią lokalną') : 'podgląd w sieci wyłączony (config.json → "lan": false)';
     $('#dataDir').textContent = info.dataDir;
+    if (info.apkUrl && $('#qr').dataset.u !== info.apkUrl) { $('#qr').dataset.u = info.apkUrl; $('#qr').src = '/api/app/qr.svg?t=' + encodeURIComponent(info.apkUrl); }
+    $('#qrBox').style.display = $('#apkHint').style.display = info.apkUrl ? '' : 'none';
     $('#auto').checked = !!info.autostart;
     const u = info.update || {};
     const um = { off: 'Aktualizacje wyłączone — brak adresu (config.json → "updateUrl").', idle: 'Nie sprawdzano.', latest: (u.msg ? u.msg[0].toUpperCase() + u.msg.slice(1) : 'Masz najnowszą wersję') + '.',
