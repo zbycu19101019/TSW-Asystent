@@ -1,26 +1,31 @@
 {
- "version": "1.7.1",
+ "version": "1.7.2",
  "notes": "",
  "files": [
   {
    "path": "CZYTAJ-MNIE.txt",
-   "sha256": "b757b4ab94b0cca5ae4c1d2cb2e68b74702696eda986b55104c03fbf3232fe89",
-   "size": 5656
+   "sha256": "0699b4ce6bc9ec2d1c685a0580402a4986811dcc98b9ba16c8e83432b55415ad",
+   "size": 7312
   },
   {
    "path": "TSW-Asystent.exe",
-   "sha256": "ba8ecf648039f2b19b278729be25d3823649cd190b08f03b01f48096d2dc15b6",
-   "size": 18048089
+   "sha256": "e9d0999f911d4a337b9b3e95b161fd110a488a6a8c003167a79cf6ff362980f2",
+   "size": 18049211
   },
   {
    "path": "TSW-Ekran.apk",
-   "sha256": "feef5719a3c180c59a019069a52a90e26fecb6f2281e0196388c0dc30236cbe8",
-   "size": 21014
+   "sha256": "975dc7db6964880cef0119551c58fc9558f45a7a45ab7fd10cbfc30d03149829",
+   "size": 25110
   },
   {
    "path": "version.json",
-   "sha256": "5c173f934bdc66e491d48de9f2fe050e3265106ed07bb2a7933f0d609bdd22d3",
+   "sha256": "f1dc07b15ad8c48bc49526f4b40ccf3d811120e583f504d1d279defb72dfccb4",
    "size": 90
+  },
+  {
+   "path": "web/i18n/app-ui.js",
+   "sha256": "7e1e971a8b7c78ec3e5a336a5f695352f8769925be97c4f8357234df78cc965e",
+   "size": 47501
   },
   {
    "path": "web/i18n/cab-dict.js",
@@ -49,13 +54,13 @@
   },
   {
    "path": "web/live.html",
-   "sha256": "177ece430c1e7b84c39dc63a2d36e33ddca0144b5768df1f67080fb55d7361e9",
-   "size": 37074
+   "sha256": "e7c453b47d22bb3018c69dee4dbd9c6bb91b037753307b9c91afca4c7d76099d",
+   "size": 37263
   },
   {
    "path": "web/panel.html",
-   "sha256": "506f9f65cfd24fb0c8ff771cc98cc60822731a00bcea9bf729b99f3553f31656",
-   "size": 25573
+   "sha256": "461b9b0b24e33ace1becea2088663e329fe5df0b428cc5e133397cc5d8b4afe8",
+   "size": 27568
   },
   {
    "path": "web/prewarm.html",
@@ -94,8 +99,8 @@
   },
   {
    "path": "web/tsw-lektor.html",
-   "sha256": "dd7b2b0367d9428fa8e2864144862549ac8dc25602623bd932000e04ffbe5c4f",
-   "size": 10035
+   "sha256": "7b9ae4ae8622d35b269dd26d56319e86a187537bd985e14daf57264759c1bea4",
+   "size": 10128
   },
   {
    "path": "web/tsw-msg.js",
@@ -114,8 +119,8 @@
   },
   {
    "path": "web/tsw-settings.html",
-   "sha256": "19534a1a7b59eaf2210036cde244da87cdbb1cf69dc874f9b80894bfbce08f4e",
-   "size": 7424
+   "sha256": "1ba74972f80f4eef672506c7b3b4dc107b7d8bc733ff91a3cc8ae207ff5f31ea",
+   "size": 7517
   },
   {
    "path": "web/tsw.html",
