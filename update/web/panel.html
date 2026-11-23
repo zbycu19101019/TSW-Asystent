@@ -24,7 +24,9 @@
   .hint{color:var(--dim);font-size:13px;margin-top:8px}
   .big{font-size:18px;font-weight:700}
   code{background:#0A0F18;border:1px solid var(--line);border-radius:8px;padding:2px 7px;font-size:14px;user-select:all}
-  .lan code{display:inline-block;margin:4px 0;font-size:17px;color:var(--cyan)}
+  .lan code{display:block;max-width:100%;margin:4px 0;font-size:clamp(13px,1.5vw,17px);color:var(--cyan);overflow-wrap:anywhere;word-break:break-all}
+  .lan .nic{font-size:12px;color:var(--dim);margin-top:6px} .lan .main code{font-size:clamp(14px,1.8vw,19px);font-weight:600}
+  .lan details{margin-top:6px} .lan details summary{cursor:pointer;color:var(--dim);font-size:13px} .lan details code{color:var(--dim)}
   progress{width:100%;height:10px;accent-color:var(--green)}
   label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
   label.chk input{width:20px;height:20px}
@@ -52,11 +54,11 @@
       </div>
       <div class="hint" id="cmdRes">Rozkład (mapa, lektor) otwiera się na drugim monitorze, gdy jest podłączony.</div>
       <div class="row" style="margin-top:10px">
-        <a class="btn" href="/tsw-route.html" target="_blank">Rozkład w karcie</a>
-        <a class="btn" href="/tsw.html" target="_blank">Pulpit</a>
-        <a class="btn" href="/tsw-settings.html" target="_blank">Ustawienia lektora</a>
-        <a class="btn" href="/tsw-lektor.html" target="_blank">Dziennik lektora</a>
-        <a class="btn" href="/tsw-route.html?demo=1" target="_blank">Pokaz bez gry</a>
+        <button data-win="route">Rozkład w oknie</button>
+        <button data-win="hud">Pulpit</button>
+        <button data-win="settings">Ustawienia lektora</button>
+        <button data-win="log">Dziennik lektora</button>
+        <button data-win="demo">Pokaz bez gry</button>
       </div>
     </div>
 
@@ -64,7 +66,7 @@
       <div class="row" style="align-items:flex-start;gap:16px;flex-wrap:nowrap">
         <div id="qrBox" style="display:none;text-align:center;flex:none"><img id="qr" alt="kod QR" style="width:150px;height:150px;border-radius:10px;border:1px solid var(--line);background:#0A0F18">
           <div class="hint" style="margin-top:4px">Zeskanuj aparatem —<br>pobierz aplikację</div></div>
-        <div style="min-width:0"><div id="lanBox">…</div>
+        <div style="min-width:0"><label class="chk"><input type="checkbox" id="lanOn"> Udostępnij w sieci lokalnej (telefon / tablet)</label><div id="lanBox">…</div>
           <div class="hint" id="apkHint" style="display:none">Aplikacja <b>TSW Ekran</b> na Androida: zeskanuj kod QR aparatem telefonu, pobierz i zainstaluj
             (telefon zapyta o zgodę na instalację z tego źródła). Potem otwórz ją — sama znajdzie ten komputer.</div></div>
       </div>
@@ -73,8 +75,9 @@
         <div class="row" style="margin-top:8px"><button class="pri" id="fwAllow">Zezwól w zaporze Windows</button></div>
         <div class="hint">Windows zapyta o zgodę administratora. Reguła dotyczy tylko tego programu i tylko sieci prywatnych (domowych).</div>
       </div>
-      <div class="hint">Aplikacja Android „TSW Ekran” znajduje ten komputer sama (przycisk „Szukaj”). W przeglądarce telefonu wpisz adres powyżej.
+      <div class="hint">Aplikacja Android „TSW Ekran” znajduje ten komputer sama (przycisk „Szukaj”) i łączy się z ostatnio używanym. W przeglądarce telefonu wpisz adres powyżej.
         Przy pierwszym starcie Windows zapyta o zgodę zapory — zaznacz „Sieci prywatne”.</div>
+      <div class="hint" role="note"><b>Prywatność:</b> po włączeniu LAN połączenie Android–PC używa HTTP/UDP bez szyfrowania; korzystaj tylko z zaufanej sieci. Podgląd udostępnia bieżące dane jazdy. Funkcje online wysyłają tekst komunikatu do Microsoft Edge TTS, a współrzędne pociągu do Overpass/OpenStreetMap; kafelki mapy są pobierane z OpenStreetMap.</div>
     </div>
 
     <div class="card"><div class="k">Głosy offline (przygotowanie z góry)</div>
@@ -86,9 +89,12 @@
           <option value="en|us|marek">English US — Guy</option><option value="en|us|zofia">English US — Jenny</option>
         </select>
         <button id="pwGo">Przygotuj</button>
+        <button id="pwStop" style="display:none">Anuluj</button>
       </div>
       <progress id="pwBar" value="0" max="1" style="margin-top:10px"></progress>
-      <div class="hint" id="pwMsg">Ok. 1900 stałych komunikatów na głos (20–30 minut, raz, w tle — można jeździć). Potem lektor mówi od razu, a nowe teksty dochodzą w trakcie jazdy.</div>
+      <div class="hint" id="pwMsg">Stałe komunikaty z jazdy (ok. 2700 na głos; 20–40 minut, raz, w tle — można jeździć). Nagrania trafiają do osobnej paczki, której nie czyści pamięć podręczna; przerwane przygotowanie wznawia się od miejsca, w którym stanęło. Nietypowe liczby lektor dociąga w trakcie jazdy.</div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="offOnly"> Tylko lokalnie — nie wysyłaj tekstu do usługi online (gotowe nagrania i głos Windows)</label>
+      <div class="hint" id="privOnline" role="note"></div>
       <iframe id="pwFrame" style="display:none" title="przygotowanie głosów"></iframe>
     </div>
 
@@ -152,13 +158,23 @@ let info = null;
 async function refresh() {
   try {
     info = await fetch('/api/app').then((r) => r.json());
+    if (info.privacyNotice) $('#privOnline').textContent = info.privacyNotice;
+    if (document.activeElement !== $('#offOnly')) $('#offOnly').checked = !!info.offlineOnly;
     const st = await fetch('/api/ekranik/tsw/status').then((r) => r.json());
     $('#ver').textContent = `wersja ${info.version} · ekrany ${info.web}`;
     if (st.running) { dot($('#dGame'), 'ok'); $('#sGame').textContent = `jazda: ${st.service || 'pociąg'} · ${Math.round(st.speed || 0)} km/h`; }
     else { dot($('#dGame'), /działa —|wczytuje/.test(st.problem || '') ? 'warn' : 'bad'); $('#sGame').textContent = st.problem || 'czekam na grę'; }
     dot($('#dTts'), info.tts ? 'ok' : 'warn');
     $('#sTts').textContent = info.tts ? 'lektor: głos online (Edge TTS) + pamięć nagrań' : 'lektor: tylko głos Windows (brak syntezy online)';
-    $('#lanBox').innerHTML = info.lan ? (info.lanUrls.length ? info.lanUrls.map((u) => `<code>${u}</code>`).join('<br>') : 'brak połączenia z siecią lokalną') : 'podgląd w sieci wyłączony (config.json → "lan": false)';
+    const L = info.lanList || (info.lanUrls || []).map((url, i) => ({ url, name: '', virtual: false, main: i === 0 }));
+    const eh = (x) => String(x).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
+    const nic = (a) => `<div class="${a.main ? 'main' : ''}">${a.name ? `<div class="nic">${eh(a.name)}${a.main ? ' · główna karta' : ''}</div>` : ''}<code>${eh(a.url)}</code></div>`;
+    const real = L.filter((a) => !a.virtual), virt = L.filter((a) => a.virtual);
+    $('#lanBox').innerHTML = !info.lan ? 'podgląd w sieci wyłączony — zaznacz pole powyżej, żeby połączyć telefon'
+      : !L.length ? 'brak połączenia z siecią lokalną'
+      : (real.length ? real : virt).map(nic).join('') + (real.length && virt.length
+        ? `<details><summary>inne karty sieciowe (wirtualne: ${virt.length})</summary>${virt.map(nic).join('')}</details>` : '');
+    if (document.activeElement !== $('#lanOn')) $('#lanOn').checked = !!(info.lanSaved != null ? info.lanSaved : info.lan);
     $('#dataDir').textContent = info.dataDir;
     if (info.apkUrl && $('#qr').dataset.u !== info.apkUrl) { $('#qr').dataset.u = info.apkUrl; $('#qr').src = '/api/app/qr.svg?t=' + encodeURIComponent(info.apkUrl); }
     $('#qrBox').style.display = $('#apkHint').style.display = info.apkUrl ? '' : 'none';
@@ -186,23 +202,51 @@ document.querySelectorAll('[data-cmd]').forEach((b) => b.onclick = async () => {
   b.disabled = false;
 });
 document.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => post('/api/app/open', { what: b.dataset.open }));
+// ekrany lektora w oknach programu (bez nowych kart w przeglądarce; ponowne kliknięcie przywraca otwarte okno)
+document.querySelectorAll('[data-win]').forEach((b) => b.onclick = () => post('/api/app/window', { page: b.dataset.win }));
 $('#auto').onchange = async (e) => { const r = await post('/api/app/autostart', { on: e.target.checked }); toast(r.autostart ? 'Będzie startować z Windows' : 'Autostart wyłączony'); };
 $('#upCheck').onclick = async () => { $('#upMsg').textContent = 'sprawdzam…'; await post('/api/app/update', { action: 'check' }); refresh(); };
-$('#upApply').onclick = async () => { await post('/api/app/update', { action: 'apply' }); toast('Aktualizuję — program może się uruchomić ponownie'); setTimeout(refresh, 1500); };
+$('#upApply').onclick = async () => {
+  if (!confirm('Zainstalować aktualizację? TSW Asystent zostanie zamknięty i uruchomiony ponownie.')) return;
+  await post('/api/app/update', { action: 'apply' });
+  toast('Aktualizuję — program uruchomi się ponownie dopiero po potwierdzeniu');
+  setTimeout(refresh, 1500);
+};
 $('#quit').onclick = async () => { if (!confirm('Zakończyć TSW Asystenta? Lektor i ekrany przestaną działać.')) return; await post('/api/app/quit'); document.body.innerHTML = '<main><h1>TSW Asystent zakończony</h1><p class="sub">Uruchom TSW-Asystent.exe, żeby wrócić.</p></main>'; };
-// przygotowanie głosów: ukryta ramka z silnikiem lektora (własne ustawienia, nie zmienia ekranów)
+// „Głosy offline”: ukryta ramka z silnikiem lektora układa listę stałych komunikatów (własne ustawienia, nie zmienia ekranów),
+// nagrania robi program (równoległość 2, ponowienia, wznawianie, anulowanie bez śmieci). Postęp = potwierdzone zapisy na dysku.
+let pwTimer = null;
+const pwShow = (s) => {
+  const done = (s.ok || 0) + (s.skipped || 0);
+  $('#pwBar').max = Math.max(1, s.total || 1); $('#pwBar').value = done;
+  const running = s.state === 'running';
+  $('#pwGo').disabled = running; $('#pwStop').style.display = running ? '' : 'none';
+  if (running) $('#pwMsg').textContent = `${done} / ${s.total} gotowych na dysku${s.failed ? ` · nieudane: ${s.failed}` : ''}`;
+  else if (s.state === 'done') $('#pwMsg').textContent = `Gotowe: ${done} z ${s.total} nagrań${s.failed ? ` (nieudane: ${s.failed} — „Przygotuj” dokończy brakujące)` : ''}.`;
+  else if (s.state === 'cancelled') $('#pwMsg').textContent = `Anulowano: ${done} z ${s.total} gotowych — „Przygotuj” wznowi od tego miejsca.`;
+  if (!running && pwTimer) { clearInterval(pwTimer); pwTimer = null; }
+};
+const pwPoll = async () => { try { pwShow(await post('/api/app/offline-pack', { action: 'status' })); } catch (_) {} };
 $('#pwGo').onclick = () => {
   const [lang, accent, voice] = $('#pwCombo').value.split('|');
-  $('#pwGo').disabled = true; $('#pwMsg').textContent = 'start…'; $('#pwBar').value = 0;
-  $('#pwFrame').src = `/prewarm.html?lang=${lang}&accent=${accent}&voice=${voice}&t=${Date.now()}`;
+  $('#pwGo').disabled = true; $('#pwMsg').textContent = 'układam listę komunikatów…'; $('#pwBar').value = 0;
+  $('#pwFrame').src = `/prewarm.html?lang=${encodeURIComponent(lang)}&accent=${encodeURIComponent(accent)}&voice=${encodeURIComponent(voice)}&t=${Date.now()}`;
 };
+$('#pwStop').onclick = async () => { pwShow(await post('/api/app/offline-pack', { action: 'cancel' })); pwPoll(); };
+// tylko z tego samego źródła i tylko z naszej ramki (inne okna/strony nie zmienią licznika); test: tests/test_cab.js
+const pwAccept = (e, win, origin) => !!(e && origin && e.origin === origin && win && e.source === win &&
+  e.data && typeof e.data === 'object' && e.data.type === 'OFFLINE_PACK' && ['started', 'error'].includes(e.data.status));
 addEventListener('message', (e) => {
-  const d = e.data || {}; if (!d.tswPrewarm) return;
-  if (d.tswPrewarm === 'start') { $('#pwBar').max = d.total; $('#pwMsg').textContent = `0 / ${d.total}`; }
-  if (d.tswPrewarm === 'progress') { $('#pwBar').max = d.total || $('#pwBar').max; $('#pwBar').value = d.done; $('#pwMsg').textContent = `${d.done} / ${d.total}`; }
-  if (d.tswPrewarm === 'done') { $('#pwBar').value = $('#pwBar').max; $('#pwMsg').textContent = `Gotowe: ${d.n} z ${d.total} nagrań.`; $('#pwGo').disabled = false; }
-  if (d.tswPrewarm === 'error') { $('#pwMsg').textContent = 'Błąd: ' + d.msg; $('#pwGo').disabled = false; }
+  if (!pwAccept(e, $('#pwFrame').contentWindow, location.origin)) return;
+  const d = e.data;
+  if (d.status === 'started') { pwPoll(); if (!pwTimer) pwTimer = setInterval(pwPoll, 1500); }
+  else if (d.status === 'error') { $('#pwMsg').textContent = 'Błąd: ' + String(d.msg || '').slice(0, 200); $('#pwGo').disabled = false; }
 });
+$('#offOnly').onchange = async (e) => {
+  await post('/api/ekranik/tsw/settings', { offlineOnly: e.target.checked });
+  toast(e.target.checked ? 'Lektor pracuje lokalnie — tekst nie wychodzi z komputera' : 'Głosy online włączone');
+};
+pwPoll();
 // ---- edytor klawiszy (zapis w config.json; telefon wysyła tylko nazwę polecenia) ----
 let kLoaded = false;
 const inp = 'padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:#0A0F18;color:var(--txt);font:14px inherit';
@@ -228,6 +272,8 @@ $('#kSave').onclick = async () => {
   $('#kMsg').textContent = r.ok ? 'Zapisano — telefon pobierze nowe przyciski po odświeżeniu karty.' : (r.msg || 'błąd zapisu');
   if (r.ok && r.control) renderKeys(r.control);
 };
+$('#lanOn').onchange = async (e) => { const r = await post('/api/app/lan', { on: e.target.checked });
+  toast(r.restart ? 'Zapisano — zamknij i uruchom ponownie TSW Asystenta, żeby zmiana zadziałała' : (r.lan ? 'Udostępnianie w sieci włączone' : 'Udostępnianie w sieci wyłączone')); refresh(); };
 $('#pcOn').onchange = async (e) => { await post('/api/phone/enable', { on: e.target.checked }); toast(e.target.checked ? 'Sterowanie z telefonu włączone' : 'Sterowanie z telefonu wyłączone'); refresh(); };
 $('#fwAllow').onclick = async () => { await post('/api/app/firewall'); toast('Potwierdź w oknie Windows (zgoda administratora)'); setTimeout(refresh, 8000); };
 // ---- panel LED ----

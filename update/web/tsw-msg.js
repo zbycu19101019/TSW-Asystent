@@ -10,6 +10,10 @@
   const LIM = { TemporarySpeedLimit: 'tymczasowe – roboty', SignalSpeedLimit: 'z semafora', SetAgainstJunction: 'zwrotnica ułożona przeciwnie',
     EndOfTrack: 'koniec toru', Axle: 'nacisk osi', TrackPropertySpeedLimit: 'szlakowe', TrackRuleSpeedLimit: 'szlakowe' };
   const PRI = { crit: 0, warn: 1, info: 2, ok: 3 };
+  // P0 (crit) ucina bieżący komunikat od razu; niższe priorytety pozwalają dograć krótką końcówkę
+  const queuePreempts = (currentLevel, nextLevel, remainingMs, local) =>
+    currentLevel !== 'crit' && PRI[nextLevel] < PRI[currentLevel] &&
+    (nextLevel === 'crit' || remainingMs == null || remainingMs > (local ? 4000 : 2500));
 
   /* ---- lektor: słownik kwestii — kilka wariantów każdej, bez powtarzania tego samego pod rząd ---- */
   const lastVar = {};
@@ -69,12 +73,13 @@
     if (LANG === 'en') { for (const [k, v] of Object.entries(EN_CITY)) base = base.replace(new RegExp('^' + k + '(?=$|[ -])'), v); base = base.replace(/\bSt\.? (?=[A-Z])/g, 'Saint ').replace(/\bJct\b\.?/g, 'Junction').replace(/\bRd\b\.?/g, 'Road').replace(/\bPkwy\b\.?/g, 'Parkway'); }
     return LANG === 'en' ? base.replace(/ü/g, 'ue').replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/Ü/g, 'Ue').replace(/Ö/g, 'Oe').replace(/Ä/g, 'Ae').replace(/ß/g, 'ss').replace(/-/g, ', ') : base;
   }   // „Hazelstauden (Dornbirn)” → „Hazelstauden, Dornbirn”
-  const say1 = (key, arr, o) => fill(pick(key, arr), o || {});
+  const say1 = (key, arr, o) => (arr && arr.length ? fill(pick(key, arr), o || {}) : '');
   const plural = (n, one, few, many) => (n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many);
   const dW_pl = (m) => { if (m == null) return '';
     if (m >= 950) { const k = Math.round(m / 100) / 10; if (k === 1) return 'kilometr'; if (k === 1.5) return 'półtora kilometra';
       if (Number.isInteger(k)) return k + ' ' + plural(k, 'kilometr', 'kilometry', 'kilometrów'); return String(k).replace('.', ',') + ' kilometra'; }
-    const r = m >= 200 ? Math.round(m / 50) * 50 : Math.round(m / 10) * 10; return r + ' ' + plural(r, 'metr', 'metry', 'metrów'); };
+    const r = m < 10 ? Math.max(1, Math.round(m)) : m >= 200 ? Math.round(m / 50) * 50 : Math.round(m / 10) * 10;
+    return r + ' ' + plural(r, 'metr', 'metry', 'metrów'); };
   const gW_pl = (g) => g + ' ' + plural(g, 'promil', 'promile', 'promili');
   const kW_pl = (v) => Math.round(v) + ' ' + plural(Math.round(v), 'kilometr', 'kilometry', 'kilometrów') + ' na godzinę';
   const minW_pl = (n) => (n === 1 ? 'minutę' : n + ' ' + plural(n, 'minuta', 'minuty', 'minut'));
@@ -88,7 +93,8 @@
   const svcW = (s) => String(s || '').split(/\s+[·:-]\s+/)[0].replace(/_[a-z]{1,2}$/, '').replace(/_/g, ' ').replace(/^([A-Za-z]{2,4})(\d)/, '$1 $2');   // ICE10_p → ICE 10
   // „prędkość” po przecinku, nie po kropce: po pauzie tor radiowy (filtr 330 Hz) zjada wybuch „P” — Whisper słyszał „Rędkość” (19.11.2026)
   // komunikaty z pakietu językowego (i18n/pl.js domyślny; de/en: ?lang=de|en) — brakujący klucz bierze polski
-  const K = Object.assign({}, I18P.msgs ? (window.TSW_I18N.packs.pl || {}).msgs : {}, I18P.msgs || {});
+  // ściśle język komunikatów: bez dokładania polskich tekstów pod brakujące klucze DE/EN (brak = komunikat pominięty)
+  const K = Object.assign({}, I18P.msgs || {});
   /* poziom ważności kwestii: 1 = tylko alarmy, 2 = ważne, 3 = normalnie, 4 = wszystko */
   const TIER = { hello: 4, sigStopFar: 3, sigStopMid: 2, sigStopNear: 2, sigAppr: 3, sigClear: 4, limFar: 3, limNearFast: 2, limNearOk: 3, limUpSoon: 3,
     limUpNow: 3, limUpHead: 4, limDnNow: 3, limDnOver: 1, sigGoStopped: 2, sigGoCaution: 2, sigGoMoving: 3, sigToStop: 1, sigToAppr: 2, depart: 3, departLine: 4, alerter: 1, stFar: 3, haltFar: 3,
@@ -113,6 +119,13 @@
     // stan dla walidatora głosu (co jest prawdą „teraz”)
     let S = { over: false, a0: 2, brakeNeed: false, dnAhead: null, limDownAt: 0 };
     const pend = [];
+    /* logika kabinowa (tsw-cab.js): debouncer semafora 350 ms, histereza przekroczenia (+3 / −2 km/h), koniec pociągu + 10 m,
+       poślizg ≥ 400 ms / koniec ≥ 1500 ms; teksty nowych zdarzeń ze słownika kabinowego, bez zastępstwa innym językiem */
+    const CAB = window.TswCab;
+    if (!CAB) throw new Error('tsw-cab.js nie został wczytany przed tsw-msg.js');
+    let deb = new CAB.SignalDebouncer(350), spdG = new CAB.SpeedHysteresisGuard({ enter: 3, exit: 2, critical: 5 }),
+      tailT = new CAB.TrainTailTracker(10), slipG = new CAB.SlipGuard(400, 1500);
+    const cabT = (id, first) => { const t = CAB.text(id, LANG); return t ? (first ? t.split(/(?<=[!.?])\s+/)[0] : t) : null; };
     const geoDist = (a, b) => { const r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(x)); };
     const gameSec = (iso) => { const t = iso ? Date.parse(iso) : NaN; return isNaN(t) ? null : t / 1000; };
     // różnica czasu gry z przejściem przez północ (gdy gra zmienia tylko godzinę, a data stoi: 23:58 → 00:03 = 5 min, nie −23 h 55 min)
@@ -123,11 +136,11 @@
     function resetRide(why) {
       resetFlag = true;
       prev = null; events = []; pend.length = 0; stopAt = 0; stopName = null; stopGame = null; co = {}; overAt = 0; stopsLen = -1;
-      odo = 0; lastT = 0; tail = null; stn = null; passChk = null; statusAt = Date.now(); saidAt = 0; lastGeo = null; lastGameS = null;
+      odo = 0; lastT = 0; tail = null; tailT.cancel(); deb = new CAB.SignalDebouncer(350); spdG.reset(); slipG = new CAB.SlipGuard(400, 1500); stn = null; passChk = null; statusAt = Date.now(); saidAt = 0; lastGeo = null; lastGameS = null;
       S = { over: false, a0: 2, brakeNeed: false, dnAhead: null, limDownAt: 0 };
       log.unshift({ t: 'Nowy przejazd — ' + why, lvl: 'info', at: '' }); log = log.slice(0, 8);
     }
-    const push = (m, ttl = 8000) => { events.push({ ...m, until: Date.now() + ttl }); if (m.speak) pend.push({ lvl: m.lvl, tier: m.tier || (m.lvl === 'crit' ? 1 : m.lvl === 'warn' ? 2 : 3), text: m.voice || m.title, topic: m.topic || null }); log.unshift({ t: m.title, lvl: m.lvl, at: m.clock || '' }); log = log.slice(0, 8); };
+    const push = (m, ttl = 8000) => { events.push({ ...m, until: Date.now() + ttl }); if (m.speak) pend.push({ lvl: m.lvl, tier: m.tier || (m.lvl === 'crit' ? 1 : m.lvl === 'warn' ? 2 : 3), text: m.voice || m.title, topic: m.topic || null, ttl: m.ttlMs || null }); log.unshift({ t: m.title, lvl: m.lvl, at: m.clock || '' }); log = log.slice(0, 8); };
 
     function update(D, opt = {}) {
       const out = [], v = Math.abs(D.speed || 0), ms = v / 3.6, lim = D.limit, sig = (D.signalsAll || D.signals || []), s0 = sig[0] || D.signal || {};
@@ -169,8 +182,15 @@
 
       /* ---- zdarzenia (porównanie z poprzednim odczytem) ---- */
       if (prev) {
-        const pa = cls((prev.sig0 || {}).aspect);
-        if (Math.abs((prev.sig0 || {}).dist - s0.dist) < 300 && pa !== a0) {
+        const sameSig = Math.abs((prev.sig0 || {}).dist - s0.dist) < 300;
+        const chg = deb.update(a0, now, !sameSig);   // wskazanie stabilne ≥ 350 ms (migotanie nie trafia do kolejki)
+        const pa = chg ? chg.from : a0;
+        /* minięcie semafora „stój” (SPAD): poprzedni semafor stój ≤ 25 m, nie permisywny, pociąg jedzie, lista przeskoczyła na następny */
+        if (!sameSig && cls((prev.sig0 || {}).aspect) === 0 && prev.sig0.dist != null && prev.sig0.dist <= 25 && !prev.perm && v >= 5 && s0.dist > prev.sig0.dist + 100) {
+          const t = cabT('CRIT_SPAD_VIOLATION', true);
+          if (t) push({ lvl: 'crit', icon: 'stop', title: 'Minięty semafor „STÓJ”!', sub: 'zatrzymaj pociąg', clock, speak: true, topic: 'spad', voice: t, ttlMs: 2500 }, 8000);
+        }
+        if (chg) {
           if (a0 === 2) push({ lvl: 'ok', icon: 'go', title: v < 1 ? 'Sygnał zezwalający — możesz ruszać' : 'Semafor zmienił się na „wolna droga”', sub: `semafor za ${fmt(s0.dist)}`, clock,
             speak: true, topic: 'sig:2', tier: v < 1 ? 2 : 3, voice: say1(v < 1 ? 'sigGoStopped' : 'sigGoMoving', K[v < 1 ? 'sigGoStopped' : 'sigGoMoving']) });
           else if (a0 === 0 && v < 3) push({ lvl: 'info', icon: 'stop', title: 'Semafor wskazuje „STÓJ”', sub: `za ${fmt(s0.dist)} — czekaj na zmianę`, clock, speak: true, topic: 'sig:0', voice: say1('sigToStopStill', K.sigToStopStill) });
@@ -185,10 +205,10 @@
           co.limChangeAt = now;
           if (lim > prev.lim) {
             // czoło minęło znak; przyspieszać wolno dopiero, gdy minie go koniec pociągu
-            if (v < 3) tail = null;   // limit podniesiony na postoju (jazda P649: 5× „czoło minęło…” przy 0 km/h) — obowiązuje od razu, bez komunikatu
-            else if (tail) tail.kmh = lim; else { tail = { from: prev.lim, kmh: lim, odo0: odo, need: trainLen }; sayP('info', 'limUpHead'); }
+            if (v < 3) tailT.cancel();   // limit podniesiony na postoju (jazda P649: 5× „czoło minęło…” przy 0 km/h) — obowiązuje od razu, bez komunikatu
+            else if (tailT.start(prev.lim, lim, odo, trainLen)) sayP('info', 'limUpHead');
           } else {
-            tail = null; S.limDownAt = now;   // nowe, niższe ograniczenie anuluje oczekiwanie
+            tailT.cancel(); S.limDownAt = now;   // nowe, niższe ograniczenie anuluje oczekiwanie
             co.graceUntil = now + 8000;         // 8 s na zejście do nowego limitu, zanim padnie „przekroczenie” (chyba że > +10 km/h)
             if (v > lim + 2) {   // wjazd na ograniczenie za szybko: jeden komunikat („obowiązuje … prędkość … hamować”) zamiast dwóch
               push({ lvl: 'crit', icon: 'limit', title: `Obowiązuje ${Math.round(lim)} km/h`, sub: `jedziesz ${Math.round(v)} km/h — hamuj`, clock, speak: true, topic: 'over',
@@ -203,15 +223,25 @@
             voice: stopName ? say1('depart', K.depart, { s: stopName, t: tW(D.gameTime), dur: durW(dur) }) : say1('departLine', K.departLine) }, 6000);
           stopAt = 0; stopGame = null;
         }
+        /* staczanie: nastawnik do przodu, a pociąg jedzie wstecz (albo odwrotnie) > 0,5 km/h przez ≥ 1 s */
+        const sv = D.speed || 0, back = D.direction > 0 ? sv < -0.5 : D.direction < 0 ? sv > 0.5 : false;
+        co.rollSince = back ? co.rollSince || now : 0;
+        if (back && now - co.rollSince >= 1000 && now - (co.rollAt || 0) > 8000) { const t = cabT('CRIT_ROLLBACK_DETECTED');
+          if (t) { co.rollAt = now; push({ lvl: 'crit', icon: 'warn', title: 'Pociąg się stacza!', sub: 'zaciągnij hamulec', clock, speak: true, topic: 'roll', voice: t, ttlMs: 2500 }, 6000); } }
+        /* kozioł oporowy (koniec toru) ≤ 200 m przy > 15 km/h — raz na obiekt */
+        const eot = lims.find((l) => l.type === 'EndOfTrack' && l.dist != null && l.dist <= 200);
+        if (eot && v > 15 && co.eotSaid !== Math.round(odo + eot.dist)) { const t = cabT('CRIT_BUFFER_END_AHEAD');
+          if (t) { co.eotSaid = Math.round(odo + eot.dist); push({ lvl: 'crit', icon: 'stop', title: 'Kozioł oporowy!', sub: `za ${fmt(eot.dist)} — hamuj`, clock, speak: true, topic: 'brake', voice: t, ttlMs: 2500 }, 6000); } }
         if (D.alerter > 0 && !(prev.alerter > 0)) push({ lvl: 'crit', icon: 'alert', title: 'CZUWAK — potwierdź!', sub: 'naciśnij przycisk czuwaka', clock, speak: true, topic: 'alerter', voice: say1('alerter', K.alerter) }, 2500);
       }
-      if (tail && odo - tail.odo0 >= tail.need) {
-        push({ lvl: 'ok', icon: 'up', title: `Można przyspieszyć do ${Math.round(tail.kmh)} km/h`, sub: 'koniec pociągu minął koniec ograniczenia', clock, speak: true, topic: 'limup:now',
-          voice: say1('limUpNow', K.limUpNow, { v: kW(tail.kmh) }) }, 6000);
-        tail = null;
+      const upTo = tailT.update(odo);   // ogon minął znak + 10 m
+      if (upTo != null) {
+        push({ lvl: 'ok', icon: 'up', title: `Można przyspieszyć do ${Math.round(upTo)} km/h`, sub: 'koniec pociągu minął koniec ograniczenia', clock, speak: true, topic: 'limup:now',
+          voice: say1('limUpNow', K.limUpNow, { v: kW(upTo) }) }, 6000);
       }
+      tail = tailT.pending;
       // limit obowiązujący cały pociąg (do przekroczeń, „maksimum”, meldunków)
-      const limE = tail ? Math.min(tail.from, lim || tail.from) : lim;
+      const limE = tailT.effective(lim);
       // nadwyżka = różnica wartości pokazanych na ekranie (zaokrąglona prędkość − zaokrąglony limit): karta i lektor mówią to samo
       const overBy = limE != null ? Math.round(v) - Math.round(limE) : 0;
       const overBand = (x) => Math.min(50, Math.max(10, Math.floor((x - 1) / 10) * 10));   // „o ponad 30” przy +37 (nie sprzeczne z ekranem)
@@ -231,7 +261,9 @@
           else if (a0 === 1) { if (co.apprSig !== co.sigSeq) { co.apprSig = co.sigSeq; sayP('info', 'sigAppr', o); } }
           // hamuje wystarczająco, żeby stanąć przed semaforem → bez „rozpocząć hamowanie / zatrzymać pociąg” (zostaje pierwsza zapowiedź z daleka)
           else { const needS = ms * ms / (2 * Math.max(20, th - 20)), okBrake = D.accel != null && D.accel < -Math.max(0.15, needS * 0.8);
-            if (!(v < 20 && D.accel != null && D.accel < -0.1) && !(okBrake && th < 1500)) sayP(th >= 800 ? 'info' : 'warn', th >= 800 ? 'sigStopFar' : th >= 400 ? 'sigStopMid' : 'sigStopNear', o); } }
+            const fastT = th <= 150 && CAB.fastMode(v, s0.dist) ? cabT('FAST_STOP') : null;
+            if (fastT && !okBrake) say.push({ lvl: 'crit', tier: 1, text: fastT, topic: 'brake', ttl: 1000 });
+            else if (!(v < 20 && D.accel != null && D.accel < -0.1) && !(okBrake && th < 1500)) sayP(th >= 800 ? 'info' : 'warn', th >= 800 ? 'sigStopFar' : th >= 400 ? 'sigStopMid' : 'sigStopNear', o); } }
         const dn = (() => { let p2 = lim; for (const l of lims) { if (p2 != null && l.kmh < p2 - 0.5) return l; p2 = l.kmh; } return null; })();
         S.dnAhead = dn ? dn.kmh : null;
         const tl = dn ? cross('limdn', dn.dist, [1500, 700, 300]) : (co.limdn = null);
@@ -240,7 +272,9 @@
             : dn.type === 'SetAgainstJunction' ? K.limJunction[0] : dn.type === 'EndOfTrack' ? K.limEnd[0] : '') : '';
           co.limdnFirst = dn.kmh;
           const needDec = (ms * ms - (dn.kmh / 3.6) ** 2) / (2 * Math.max(1, tl)), braking = D.accel != null && D.accel < -Math.max(0.2, needDec * 0.8);
-          if (tl <= 300) sayP(v > dn.kmh + 10 && !braking ? 'warn' : 'info', v > dn.kmh + 10 && !braking ? 'limNearFast' : 'limNearOk', o);
+          const fastId = tl <= 300 && v > dn.kmh + 10 && !braking && CAB.fastMode(v, dn.dist) ? CAB.fastLimitId(dn.kmh) : null, fastL = fastId ? cabT(fastId) : null;
+          if (fastL) say.push({ lvl: 'crit', tier: 1, text: fastL, topic: 'brake', ttl: 1200 });
+          else if (tl <= 300) sayP(v > dn.kmh + 10 && !braking ? 'warn' : 'info', v > dn.kmh + 10 && !braking ? 'limNearFast' : 'limNearOk', o);
           else if (!(v >= 120 && co.earlyVt === dn.kmh)) sayP('info', 'limFar', o, extra); }   // po wczesnym „hamować” bez powtórnej zapowiedzi
         const upL = lims.find((l) => lim != null && l.kmh > lim + 0.5);
         const tu = upL ? cross('limup', upL.dist, [500]) : (co.limup = null);
@@ -268,12 +302,13 @@
       }
       /* ---- dodatkowe kwestie ---- */
       // przekroczenie z histerezą: wejście > limit + 2, wyjście < limit + 0,5 (bez trzepotania na granicy)
-      const over = !!(limE && (prev && prev.over ? v > limE + 0.5 : v > limE + 2)), cr = !!(D.cruise && D.cruise.active), inTun = !!((D.track || [])[0] && D.track[0].tunnel);
+      spdG.update(limE ? v : null, limE || null);   // 79/80/79 km/h nie powtarza alarmu; koniec dopiero ≤ limit − 2
+      const over = spdG.latched, cr = !!(D.cruise && D.cruise.active), inTun = !!((D.track || [])[0] && D.track[0].tunnel);
       if (prev) {
         if (D.direction && prev.dir && D.direction !== prev.dir) sayP('info', D.direction > 0 ? 'dirFwd' : 'dirBack');
         if (cr && !prev.cruise) sayP('info', 'cruiseOn', { v: kW(D.cruise.kmh || v) });
         if (!cr && prev.cruise) sayP('info', 'cruiseOff');
-        if (D.slipping && !prev.slip && now - (co.slipAt || 0) > 45000) { co.slipAt = now; sayP('warn', 'slip'); }
+        if (slipG.update(!!D.slipping, now) === 'start' && now - (co.slipAt || 0) > 45000) { co.slipAt = now; sayP('warn', 'slip'); }
         if (over && !prev.over) co.overSince = now;
         if (prev.over && !over) {
           // tylko gdy w tym epizodzie padł komunikat o przekroczeniu, trwał ≥ 4 s i nie mówiliśmy tego przed chwilą
@@ -330,7 +365,9 @@
         const sustained = v > limE + 5 || now - (co.overSince || now) >= 4000;   // chwilowe +2…+5 km/h przy falowaniu — bez alarmu
         if (!grace && !co.overEp && sustained && (big || now - (co.lastOverMsg || 0) > 20000 && now - (co.speedMsgAt || 0) > 20000)) {
           // jazda ATSF 823: „o 2 kilometry…” to za każdym razem nowy tekst → nagranie nie zdążało (głos przeglądarki); do +10 km/h bez liczby
-          sayP('crit', overBy > 10 ? 'overFirst' : 'overSmall', { v: kW(limE), x: kW(overBand(overBy)) }); co.overEp = true; co.overRem = 0; overAt = co.lastOverMsg = co.speedMsgAt = now;
+          const fastO = v >= 200 ? cabT('FAST_OVERSPEED') : null;   // KDP: krótka komenda (< 1,2 s)
+          if (fastO) say.push({ lvl: 'crit', tier: 1, text: fastO, topic: 'over', ttl: 1000 });
+          else sayP('crit', overBy > 10 ? 'overFirst' : 'overSmall', { v: kW(limE), x: kW(overBand(overBy)) }); co.overEp = true; co.overRem = 0; overAt = co.lastOverMsg = co.speedMsgAt = now;
         } else if (!grace && co.overEp && now - overAt > ([20000, 45000, 90000][co.overRem || 0] || 180000)) {   // 15 → 30 → 60 → co 120 s
           if (!slowing && v > limE + 5) { sayP('warn', 'over', { v: kW(limE) }); co.overRem = (co.overRem || 0) + 1; overAt = co.lastOverMsg = co.speedMsgAt = now; }
         }   // krótkie ponowne wejście < 20 s po poprzednim komunikacie: cisza (pełny komunikat dopiero po 20 s albo przy > +10 km/h)
@@ -347,7 +384,7 @@
       }
       if (pend.length) { say.unshift(...pend.splice(0)); saidAt = Date.now(); }
       S.over = over; S.a0 = a0;
-      prev = { sig0: { ...s0 }, lim, v, alerter: D.alerter, dir: D.direction, cruise: cr, slip: !!D.slipping, over, tun: inTun };
+      prev = { sig0: { ...s0 }, perm: !!(D.signal && D.signal.permissive), lim, v, alerter: D.alerter, dir: D.direction, cruise: cr, slip: !!D.slipping, over, tun: inTun };
       events = events.filter((e) => e.until > Date.now());
 
       /* ---- stan stały ---- */
@@ -637,7 +674,8 @@
     .replace(RX.stoj, 'stój').replace(/!/g, '.').replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').replace(/,\s*,/g, ',').replace(/\.\s*\./g, '.').trim();
   const speechText = (t) => (LANG === 'pl' ? numbersW(speechBase(t)) : String(t || '').replace(/\s+/g, ' ').trim());   // de/en: syntezator czyta liczby sam
   window.TswSpeechText = speechText;
-  window.TswMsgDebug = { K, dW, kW, minW, durW, gW, fill, autoName, speech: (t) => speechText(t), setCountry: (c) => { COUNTRY = c; } };
+  window.TswMsgDebug = { K, dW, kW, minW, durW, gW, fill, autoName, speech: (t) => speechText(t), queuePreempts,
+    setCountry: (c) => { COUNTRY = c; } };
   /* Meldunki o stałej treści (progi odległości są stałe: 1500/800/400/150 m, ograniczenia co 10 km/h) —
      lektor radiowy przygotowuje je z góry na serwerze, żeby na trasie grały od razu, bez czekania na syntezę. */
   const CRIT_KEYS = new Set(['overFirst', 'overSmall', 'limDnOver', 'sigToStop', 'alerter', 'brakeNow', 'brakeHard', 'brakeEarly', 'brakeEarlyHard']);
@@ -646,6 +684,11 @@
     ['sigGoStopped', 'sigGoCaution', 'sigGoMoving', 'sigToStop', 'sigToAppr', 'alerter', 'wait', 'perm', 'slip', 'speedOk', 'cruiseOff', 'tunnelOut', 'dirFwd', 'dirBack',
       'limUpHead', 'departLine', 'arriveLine', 'wx_rain', 'wx_snow', 'wx_fog', 'sunset', 'sunrise'].forEach((k) => add(k));
     add('brakeEarly', { what: K.wSigStopL[0] }); add('brakeEarlyHard', { what: K.wSigStopL[0] });
+    /* słownik kabinowy: tylko komunikaty, które wyzwala telemetria TSW (stałe teksty P0) — reszta słownika nie jest pobierana z góry */
+    const CABP = window.TswCab;
+    if (CABP) [['FAST_STOP'], ['FAST_OVERSPEED'], ['FAST_LIMIT_40'], ['FAST_LIMIT_80'], ['FAST_LIMIT_160'], ['CRIT_SPAD_VIOLATION', true],
+      ['CRIT_ROLLBACK_DETECTED'], ['CRIT_BUFFER_END_AHEAD']].forEach(([id, first]) => { const t = CABP.text(id, LANG);
+      if (t) out.push({ text: first ? t.split(/(?<=[!.?])\s+/)[0] : t, lvl: 'crit' }); });
     // tunel (zapowiedź zawsze na 400 m), nachylenie 10–35 ‰ na 600 m — stałe progi, więc gotowe nagrania
     add('tunnel', { d: dW(400) });
     for (let g = 10; g <= 35; g++) { add('gUp', { g: gW(g), d: dW(600) }); add('gDown', { g: gW(g), d: dW(600) }); }
@@ -675,7 +718,13 @@
       return exact.length ? exact : all.filter((v) => v.lang.toLowerCase().startsWith(base)); };
     const pick = () => { const vs = pl(), nat = vs.filter((v) => /natural|online|neural/i.test(v.name)), who = voiceWho();
       const want = new RegExp(who, 'i'), local = LANG === 'pl' ? (mode === 'zofia' ? /paulina/i : /adam/i) : /./;   // zapas: głosy Windows na tym PC
-      return nat.find((v) => want.test(v.name)) || nat[0] || vs.find((v) => local.test(v.name)) || vs[0] || null; };
+      // tylko głosy języka komunikatów (lepiej cisza niż polski głos czytający niemiecki);
+      // z internetem najpierw głosy Natural/online, bez sieci najpierw zainstalowane lokalnie (SAPI/Windows)
+      const inst = vs.filter((v) => v.localService === true);
+      const online = !(typeof navigator !== 'undefined' && navigator.onLine === false) && Date.now() - radioFailAt > 60000;
+      const byLocal = inst.find((v) => want.test(v.name)) || inst.find((v) => local.test(v.name)) || inst[0];
+      const byNat = nat.find((v) => want.test(v.name)) || nat[0];
+      return (online ? byNat || byLocal : byLocal || byNat) || vs.find((v) => local.test(v.name)) || vs[0] || null; };
     if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
     /* ---- tor audio efektów (Web Audio) ----
        radioBus: pasmo radiotelefonu 300–3400 Hz + lekkie podbicie 1,8 kHz + kompresor — sygnały ostrzegawcze, klik PTT, nośna;
@@ -768,10 +817,18 @@
     function fetchRadio(q) {
       if (engine !== 'radio' || Date.now() - radioFailAt < 60000 || !window.fetch) return Promise.resolve(null);
       const kind = kindOf(q), txt = spoken(q), pr = prosody(txt, kind), cfx = clientFx();
-      return fetch('/api/ekranik/tsw/say', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: txt, voice: voiceName(), style: cfx ? 'dry' : kind, rate: pr.rate, pitch: pr.pitch }) })
+      const request = (refresh) => fetch('/api/ekranik/tsw/say', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: txt, voice: voiceName(), style: cfx ? 'dry' : kind, rate: pr.rate, pitch: pr.pitch, refresh }) })
         .then((r) => { if (r.status === 429 || r.status === 503) { const e = new Error('busy'); e.soft = true; throw e; } if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-        .then((b) => { radioErr = 0; return AC().decodeAudioData(b); })
+      const decode = (b) => AC().decodeAudioData(b.slice(0));
+      return request(false)
+        .then((b) => decode(b).catch((e) => {
+          // Uszkodzona kopia z cache: raz poproś serwer o jej skasowanie i świeżą syntezę.
+          if (q.cacheRetried) throw e;
+          q.cacheRetried = true;
+          return request(true).then(decode);
+        }))
+        .then((buf) => { radioErr = 0; return buf; })
         .then((buf) => (cfx ? window.TswFx.render(buf, kind) : buf))
         .catch((e) => { if (!e || !e.soft) { if (++radioErr >= 3) { radioFailAt = Date.now(); radioErr = 0; } } return null; });
     }
@@ -814,6 +871,9 @@
       fetch('/api/ekranik/tsw/lektor-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) }).catch(() => {});
     }, 10000);
     const PRIO = { crit: 0, warn: 1, info: 2, ok: 3 }, MAX_AGE = { crit: 7000, warn: 9000, info: 11000, ok: 11000 };
+    // TTL: własny komunikatu (słownik kabinowy, FAST_*) albo poziomu P0–P3 (tsw-cab.js); bez tsw-cab.js — dotychczasowe limity
+    const ttlOf = (q) => q.ttl || (window.TswCab ? window.TswCab.meta(q.lvl).ttl : MAX_AGE[q.lvl] || 9000);
+    const expired = (q) => Date.now() - q.at > ttlOf(q);
     const spokenAt = {};
     let validator = null;
     function next() {
@@ -821,7 +881,7 @@
       queue.sort((a, b) => PRIO[a.lvl] - PRIO[b.lvl] || a.at - b.at);
       let q = null;
       while (queue.length) { const c = queue.shift();
-        if (Date.now() - c.at > (MAX_AGE[c.lvl] || 9000)) { jlog('przeterminowany', c); continue; }
+        if (expired(c)) { jlog('przeterminowany', c, { ttl: ttlOf(c) }); continue; }
         if (c.topic && validator && !c.force && !validator(c.topic)) { jlog('nieaktualny', c); continue; }
         q = c; break; }
       if (!q) { busy = false; current = null; keyDown(); return; }
@@ -833,6 +893,7 @@
         const wait = kq === 'station' ? 4000 : WAIT[q.lvl] || 4000;
         Promise.race([Promise.resolve(q.audio).catch(() => null), new Promise((r) => setTimeout(() => r(null), wait))]).then((buf) => {
           if (current !== q) return;
+          if (expired(q)) { jlog('przeterminowany', q, { ttl: ttlOf(q), po: 'sieci' }); busy = false; current = null; air(false, q); next(); return; }   // drugie sprawdzenie TTL
           // dźwięk strony wstrzymany przez przeglądarkę (okno bez zgody na autoodtwarzanie) → nagranie byłoby niesłyszalne; mowa systemowa działa
           if (buf && ac && ac.state !== 'running') { blockedAt = Date.now(); jlog('dźwięk wstrzymany', q, { audio: ac.state, test: testBlocked || undefined }); if (!testBlocked) ac.resume().catch(() => {}); speakLocal(q); return; }
           if (buf) playRadio(q, buf); else speakLocal(q);
@@ -865,10 +926,27 @@
       const station = STATION.test(q.text) && q.lvl !== 'crit';
       // zapowiedź stacyjna: pauza po „Stacja”, wolniejsze tempo jak megafon
       const txt = station ? clean(q.text).replace(/^Stacja (?=\S)/, 'Stacja, ').replace(/^(Następn[ay] (?:stacja|przystanek)):?\s*/, '$1... ') : clean(q.text);
-      const u = new SpeechSynthesisUtterance(txt), v = pick(); if (v) u.voice = v;
+      const v = pick();
+      if (!v && (q.voiceWaits || 0) < 4) {
+        q.voiceWaits = (q.voiceWaits || 0) + 1;
+        setTimeout(() => { if (current === q) speakLocal(q); }, 250);
+        return;
+      }
+      if (!v) {
+        jlog('pominięty', q, { why: 'brak lokalnego głosu Windows' });
+        setTimeout(() => { if (current === q) next(); }, 50);
+        return;
+      }
+      let u;
+      try { u = new SpeechSynthesisUtterance(txt); }
+      catch (_) {
+        jlog('błąd mowy', q, { why: 'SpeechSynthesisUtterance niedostępny' });
+        setTimeout(() => { if (current === q) next(); }, 50);
+        return;
+      }
+      u.voice = v;
       const st = VOICE_STYLE[station ? 'station' : q.lvl] || VOICE_STYLE.info;
-      u.lang = (v && v.lang) || BCP(); u.rate = st.rate; u.pitch = st.pitch; u.volume = 1;
-      if (!v && LANG !== 'pl') { jlog('pominięty', q, { why: 'brak głosu ' + BCP() + ' w systemie' }); setTimeout(() => { if (current === q) next(); }, 50); return; }   // lepiej cisza niż polski głos czytający niemiecki
+      u.lang = v.lang || BCP(); u.rate = st.rate; u.pitch = st.pitch; u.volume = 1;
       // zapowiedź stacyjna = megafon (gong, bez radia); reszta = radio: otwarcie kanału raz na serię
       let delay;
       if (station) { keyDown(); delay = gong(); }
@@ -885,7 +963,11 @@
         if (!q.started) jlog('błąd mowy', q, { why: e && e.error });
         if (e && e.error === 'not-allowed') speechBlockedAt = Date.now();
         u.onend(); };
-      setTimeout(() => { if (current === q) speechSynthesis.speak(u); }, delay);   // odwołany w czasie gongu → nie mówimy
+      setTimeout(() => {
+        if (current !== q) return;
+        try { speechSynthesis.speak(u); }
+        catch (_) { jlog('błąd mowy', q, { why: 'systemowy syntezator niedostępny' }); if (current === q) next(); }
+      }, delay);   // odwołany w czasie gongu → nie mówimy
       setTimeout(() => { if (current !== q) return; jlog('zawieszony', q, { src: 'lokalnie' });
         u.onend = u.onerror = null; try { speechSynthesis.cancel(); } catch (_) {} air(false, q); next(); }, delay + 6000 + txt.length * 150);
       setTimeout(() => { if (current === q && !speechSynthesis.speaking) next(); }, 15000);  // zabezpieczenie, gdy onend nie przyjdzie
@@ -944,10 +1026,14 @@
       toggle() { const wasOn = mode !== 'off'; mode = mode === 'off' ? 'marek' : mode === 'marek' ? 'zofia' : 'off'; try { localStorage.setItem('tswVoiceMode', mode); } catch (_) {}
         if (mode !== 'off') this.say(fill((wasOn ? K.voiceWho : K.voiceOn)[0], { who: voiceWho() }), 'info', true, 3, 'cfg'); return mode; },   // przełączenie głosu: tylko „Mówi …”
       set validator(fn) { validator = fn; },
-      say(text, lvl = 'info', force, tier = 3, topic = null) {
+      /* dokładnie to, co wysłałby fetchRadio (ten sam klucz nagrania na serwerze) — dla generatora „Głosy offline” */
+      payload(text, lvl = 'info') { const q = { text, lvl }, kind = kindOf(q), txt = spoken(q), pr = prosody(txt, kind);
+        return { text: txt, voice: voiceName(), rate: pr.rate, pitch: pr.pitch }; },
+      say(text, lvl = 'info', force, tier = 3, topic = null, opt = null) {
         if ((mode === 'off' && !force) || !window.speechSynthesis) return;
+        if (!text || !String(text).trim()) return;   // brak tekstu w języku komunikatów — cisza zamiast innego języka
         if (!force && tier > level) return;
-        if (text === last && Date.now() - lastAt < 20000) return jlog('pominięty', { text, lvl, topic }, { why: 'powtórka < 20 s' });
+        if (text === last && Date.now() - lastAt < (lvl === 'crit' ? 6000 : 20000)) return jlog('pominięty', { text, lvl, topic }, { why: lvl === 'crit' ? 'alarm powtórzony < 6 s' : 'powtórka < 20 s' });   // alarm może wrócić szybciej, ale nie co sekundę
         // ten sam temat przed chwilą powiedziany → pomiń (alarmy zawsze przechodzą)
         if (topic && lvl !== 'crit' && !force && spokenAt[topic] && Date.now() - spokenAt[topic] < 6000) return jlog('pominięty', { text, lvl, topic }, { why: 'temat < 6 s' });
         const fam0 = topic ? String(topic).split(':')[0] : '';
@@ -966,21 +1052,21 @@
         const fam = topic ? String(topic).split(':')[0] : null;
         if (fam) queue = queue.filter((q) => { const keep = !q.topic || String(q.topic).split(':')[0] !== fam; if (!keep) jlog('zastąpiony', q, { by: text }); return keep; });
         if (queue.some((q) => q.text === text)) return;
-        const item = { text, lvl, topic, force: !!force, at: Date.now() };
+        const item = { text, lvl, topic, force: !!force, at: Date.now(), ttl: opt && opt.ttl > 0 ? +opt.ttl : null };
         item.audio = fetchRadio(item);   // pobieranie nagrania rusza od razu (zwykle gotowe, zanim przyjdzie kolej)
         queue.push(item);
         // przeciążenie: zostają najważniejsze 3
         if (queue.length > 3) { queue.sort((a, b) => PRIO[a.lvl] - PRIO[b.lvl] || b.at - a.at); queue.length = 3; }
-        // alarm przerywa bieżący komunikat, jeśli ten nie jest alarmem
-        // alarm a bieżący komunikat: bez ucinania w pół słowa — krótka końcówka (≤ 2,5 s) dogrywa się, alarm wchodzi zaraz po niej;
-        // dłuższy komunikat radiowy jest wyciszany płynnie (0,2 s), dopiero wtedy alarm; jeszcze niegrany (czeka na nagranie) — po prostu ustępuje
-        if (lvl === 'crit' && current && current.lvl !== 'crit') {
-          const left = current.endAt ? current.endAt - Date.now() : 0, cur = current;
-          if (!cur.endAt || left > (cur.local ? 4000 : 2500)) {
+        // Wyższy priorytet przerywa niekrytyczny komunikat; krytyczny może dokończyć krótką końcówkę.
+        // Dłuższe audio wyciszamy płynnie; oczekujące nagranie ustępuje od razu.
+        if (current) {
+          const cur = current, left = cur.endAt ? cur.endAt - Date.now() : null;
+          if (queuePreempts(cur.lvl, lvl, left, !!cur.local)) {
             jlog('przerwany', cur, { by: text, left: Math.round(left) });
             if (cur.local) speechSynthesis.cancel();
             if (curSrc) { const src = curSrc, gn = src.__g; curSrc = null; src.onended = null;
-              try { if (gn) { const t = gn.context.currentTime; gn.gain.setValueAtTime(gn.gain.value, t); gn.gain.linearRampToValueAtTime(0, t + 0.2); src.stop(t + 0.22); } else src.stop(); } catch (_) {} }
+              const fade = lvl === 'crit' ? 0.04 : 0.2;   // P0: ucięcie natychmiast (bez trzasku), reszta: płynne wyciszenie
+              try { if (gn) { const t = gn.context.currentTime; gn.gain.setValueAtTime(gn.gain.value, t); gn.gain.linearRampToValueAtTime(0, t + fade); src.stop(t + fade + 0.02); } else src.stop(); } catch (_) {} }
             busy = false; current = null; air(false, cur);
           }
         }

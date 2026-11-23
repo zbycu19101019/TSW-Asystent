@@ -6,13 +6,14 @@ TSW_I18N.add('en', {
   levels: ['', 'alarms only', 'important', 'normal', 'everything'], levelPrefix: 'speaks: ',
   stationWords: ['Station', 'Halt', 'Next station', 'Next stop', 'Arriving'],
   units: {
-    kmh: (n) => `${Math.round(n)} kilometres per hour`,
+    kmh: (n) => { const v = Math.round(n); return `${v} kilometre${v === 1 ? '' : 's'} per hour`; },
     d: (m) => { if (m == null) return ''; if (m >= 950) { const k = Math.round(m / 100) / 10; return k === 1 ? 'one kilometre' : `${k} kilometres`; }
-      const r = m >= 200 ? Math.round(m / 50) * 50 : Math.round(m / 10) * 10; return `${r} metres`; },
+      const r = m >= 200 ? Math.round(m / 50) * 50 : m < 10 ? Math.round(m) : Math.round(m / 10) * 10;
+      return `${r} metre${r === 1 ? '' : 's'}`; },
     g: (g) => `${g} per mille`,
     min: (n) => (n === 1 ? 'one minute' : `${n} minutes`),
     dur: (s) => (s < 60 ? `${s} seconds` : Math.round(s / 60) === 1 ? 'one minute' : `${Math.round(s / 60)} minutes`),
-    km: (n) => `${n} kilometres`,
+    km: (n) => `${n} kilometre${Number(n) === 1 ? '' : 's'}`,
   },
   msgs: {
     hello: ['Train {svc}. Radio check complete.', 'Train {svc}. Received. Have a good run.'],

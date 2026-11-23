@@ -31,10 +31,11 @@ GŁOSY
 
 TELEFON / TABLET
   Aplikacja Android „TSW Ekran”: w oknie programu zeskanuj kod QR aparatem telefonu — pobierze się TSW-Ekran.apk (telefon zapyta
-  o zgodę na instalację z tego źródła). Po uruchomieniu aplikacja sama znajduje komputer w sieci.
+  o zgodę na instalację z tego źródła). Po uruchomieniu aplikacja sama znajduje komputer w sieci i łączy się z ostatnio używanym.
   Karta „Pulpit”: pulpit maszynisty (obróć telefon poziomo). Przesuń palcem w bok — karta „Sterowanie”.
   Sterowanie: sparuj telefon kodem z okna programu (karta „Sterowanie z telefonu”). Dźwignie nastawnika i hamulców przesuwasz
-  palcem — program sam dociąga dźwignię w grze do tej pozycji. Nawrotnik TYŁ / N / PRZÓD, duże przyciski i zakładki funkcji:
+  palcem — program ustawia dźwignię w grze od razu przez API gry (-HTTPAPI); gdy pociąg nie udostępnia
+  danej dźwigni w API, dociąga ją klawiszami (okno gry musi być wtedy na pierwszym planie). Nawrotnik TYŁ / N / PRZÓD, duże przyciski i zakładki funkcji:
   nawrotnika, czuwaka, syreny, świateł, drzwi, kamer… oraz „nastawnik na 0” / „odhamuj do końca” (program trzyma klawisz,
   aż gra pokaże zero). Nagłe hamowanie: przytrzymaj pół sekundy. Program wciska klawisze gry (domyślne skróty TSW) tylko
   w trakcie jazdy i tylko do okna Train Sim World. Inne skróty i własne przyciski: okno programu → „Klawisze sterowania”.
@@ -52,11 +53,14 @@ GDZIE SĄ MOJE DANE
   Klucz API gry (CommAPIKey.txt) jest czytany tylko lokalnie i nigdzie nie wysyłany.
   Program wysyła do internetu wyłącznie: teksty komunikatów do syntezy mowy (Microsoft), położenie pociągu
   w grze do wyszukania nazw stacji (OpenStreetMap / Overpass), kafelki mapy (OpenStreetMap, OpenRailwayMap).
+  Połączenie Android–PC w sieci lokalnej używa HTTP/UDP bez szyfrowania. Włącz LAN tylko w zaufanej sieci;
+  podgląd udostępnia bieżące dane jazdy. Nowa konfiguracja ma LAN i sterowanie z telefonu wyłączone — włączysz je w oknie programu.
 
 AKTUALIZACJE
   Panel → „Aktualizacje” → „Sprawdź” / „Zainstaluj”. Podmieniane są tylko pliki programu (exe, folder web).
   Ustawienia, dziennik, jazdy i nagrania głosów w folderze danych zostają nietknięte.
   Poprzednia wersja plików trafia do .backup\ obok exe.
+  Manifest latest.json jest weryfikowany podpisem Ed25519 i sumami SHA-256.
 
 ZGŁASZANIE BŁĘDÓW
   Opisz, co się stało i kiedy. Pomaga: logs\asystent.log i plik z lektor-log\ z dnia jazdy (panel → „Logi”).

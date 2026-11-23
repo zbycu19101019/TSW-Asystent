@@ -240,11 +240,15 @@
 <script src="/i18n/en.js"></script>
 <script src="/i18n/ui.js"></script>
 <script src="/tsw-fx.js"></script>
+<script src="/i18n/cab-dict.js"></script>
+<script src="/tsw-cab.js"></script>
 <script src="/tsw-msg.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
+  const htmlEsc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const pad = (n) => String(n).padStart(2, '0');
   const dec = (v, n = 1) => (v == null || isNaN(v) ? '—' : Number(v).toFixed(n).replace('.', ','));
   const fmtKm = (m) => (m == null ? '—' : m >= 10000 ? Math.round(m / 1000) + ' km' : m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m) + ' m');
@@ -292,8 +296,9 @@
     const ahead = new Set(stationsAhead(ll).slice(0, 4).map((s) => s.name));
     STATIONS.filter((st) => st.d < 20000).forEach((st) => {
       const a = ahead.has(st.name);
+      const label = document.createElement('span'); label.textContent = String(st.name || '');
       L.circleMarker([st.lat, st.lon], { radius: a ? 8 : 5, color: a ? '#E9C46A' : '#7F8BA0', weight: 3, fillColor: '#0B1019', fillOpacity: 1 })
-        .bindTooltip(st.name, { permanent: true, direction: 'right', offset: [8, 0], className: 'stlabel' + (a ? ' ahead' : '') }).addTo(stLayer);
+        .bindTooltip(label, { permanent: true, direction: 'right', offset: [8, 0], className: 'stlabel' + (a ? ' ahead' : '') }).addTo(stLayer);
     });
   }
   const hist = []; let histAt = 0, nxRef = null;
@@ -314,7 +319,7 @@
     $('rsrc').textContent = e.on ? (e.src === 'radio' ? 'ONLINE' : 'LOKALNIE') : '';
     if (e.on) { $('rtx').textContent = '„' + e.text + '”';
       const d = new Date(); rlog.unshift({ t: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`, x: e.text }); rlog.length = Math.min(rlog.length, 2);
-      $('rlog').innerHTML = rlog.map((l) => `<div><b>${l.t}</b><span>${l.x}</span></div>`).join(''); }
+      $('rlog').innerHTML = rlog.map((l) => `<div><b>${htmlEsc(l.t)}</b><span>${htmlEsc(l.x)}</span></div>`).join(''); }
     else $('rtx').textContent = 'kanał wolny';
   };
   (function vuLoop() {   // wskaźnik poziomu: pomiar z nagrania z serwera, przy głosie przeglądarki animacja
@@ -540,7 +545,7 @@
     const ev = [], v = Math.abs(D.speed || 0) / 3.6;
     (D.signalsAll || D.signals || []).forEach((s, i) => { const [l, c, lvl] = ASP(s.aspect), perm = i === 0 && D.signal && D.signal.permissive;
       ev.push({ d: s.dist, kind: 'sig', col: c, target: lvl === 0 ? 0 : lvl === 1 ? 40 : null, node: headHtml(lvl),
-        html: `Semafor · <b style="color:${c}">${l}</b>${perm ? ' <span class="pbadge">P · permisywny</span>' : ''}<div class="sub">${perm && lvl === 0 ? 'można minąć po zatrzymaniu, dalej jazda na widoczność' : ASP_HINT[lvl]}</div>` }); });
+        html: `Semafor · <b style="color:${c}">${htmlEsc(l)}</b>${perm ? ' <span class="pbadge">P · permisywny</span>' : ''}<div class="sub">${perm && lvl === 0 ? 'można minąć po zatrzymaniu, dalej jazda na widoczność' : ASP_HINT[lvl]}</div>` }); });
     let prev = D.limit;
     (D.nextLimitsAll || D.nextLimits || []).forEach((l) => { if (l.kmh == null) return; const down = prev != null && l.kmh < prev;
       ev.push({ d: l.dist, kind: 'lim', col: down ? '#FFC83D' : '#3DDC97', target: down ? l.kmh : null, node: `<span class="ssign">${Math.round(l.kmh)}</span>`, html: `${down ? 'Zwolnij do' : 'Można przyspieszyć do'} <b>${Math.round(l.kmh)}</b> km/h${LIM_TYPE[l.type] ? `<div class="sub${l.type === 'TemporarySpeedLimit' || l.type === 'SetAgainstJunction' || l.type === 'EndOfTrack' ? ' hot' : ''}">ograniczenie ${LIM_TYPE[l.type]}</div>` : ''}` }); prev = l.kmh; });
@@ -554,7 +559,7 @@
       if (sign && sign !== lastSign) { ev.push({ d: tr[i - 1].d, node: `<span class="dot">${ico(s2 > 0 ? 'up' : 'down', s2 > 0 ? '#E9C46A' : '#38D6FF', 16)}</span>`, html: `${s2 > 0 ? 'Wzniesienie' : 'Spadek'} <b>${Math.abs(s2).toFixed(0)}‰</b>` }); grads++; }
       lastSign = sign; }
     if (lastLL) stationsAhead(lastLL).slice(0, 3).forEach((st) => ev.push({ d: st.d, approx: true, col: '#E9C46A', node: `<span class="dot" style="border-color:#E9C46A">${ico('station', '#E9C46A', 16)}</span>`,
-      html: `Stacja <b style="color:#E9C46A">${st.name}</b>${st.kind === 'halt' ? ' <span style="color:var(--dim);font-size:13px">(przystanek)</span>' : ''}` }));
+      html: `Stacja <b style="color:#E9C46A">${htmlEsc(st.name)}</b>${st.kind === 'halt' ? ' <span style="color:var(--dim);font-size:13px">(przystanek)</span>' : ''}` }));
     ev.sort((a, b) => a.d - b.d);
     ev.forEach((e) => { e.eta = v > 0.5 ? e.d / v : null;
       if (e.target != null) { const vt = e.target / 3.6, sb = Math.max(0, (v * v - vt * vt) / (2 * DECEL)); e.brakeIn = e.d - sb; e.needDecel = e.d > 1 ? Math.max(0, (v * v - vt * vt) / (2 * e.d)) : 9; } });
@@ -570,10 +575,10 @@
     adv.className = 'advice' + (m.lvl === 'crit' ? ' crit' : ''); adv.style.borderColor = m.lvl === 'ok' ? 'var(--line)' : col;
     adv.style.background = m.lvl === 'crit' ? 'rgba(255,59,78,.16)' : m.lvl === 'warn' ? 'rgba(255,200,61,.08)' : '#0A0F18';
     P.style.width = m.prog ? m.prog + '%' : '0'; P.style.background = col; P.style.boxShadow = `0 0 12px ${col}`;
-    $('advQ').innerHTML = R.queue.map((q) => `<div><i style="background:${window.TSW_MSG_COL[q.lvl]}"></i>${q.title}${q.sub ? ` <span style="color:var(--dim)">· ${q.sub}</span>` : ''}</div>`).join('');
+    $('advQ').innerHTML = R.queue.map((q) => `<div><i style="background:${window.TSW_MSG_COL[q.lvl]}"></i>${htmlEsc(q.title)}${q.sub ? ` <span style="color:var(--dim)">· ${htmlEsc(q.sub)}</span>` : ''}</div>`).join('');
     if (m.key !== lastMain) { lastMain = m.key; if (m.speak && !m.until) VOICE.say(m.voice || (m.title + (m.sub ? '. ' + m.sub : '')), m.lvl, false, m.tier, m.topic); }
     if (R.reset) VOICE.flush('nowy przejazd');
-    (R.say || []).forEach((x) => VOICE.say(x.text, x.lvl, false, x.tier, x.topic));
+    (R.say || []).forEach((x) => VOICE.say(x.text, x.lvl, false, x.tier, x.topic, { ttl: x.ttl }));
     if (R.upcoming && R.upcoming.length) VOICE.prefetch(R.upcoming);   // najbliższe meldunki przygotowane zawczasu (gra bez czekania)
     $('tl').innerHTML = ev.slice(0, 4).map((e, i) => {
       const eta = e.eta == null ? '—' : e.eta < 60 ? `${Math.round(e.eta)} s` : `${Math.floor(e.eta / 60)}:${pad(Math.round(e.eta % 60))} min`;
@@ -654,7 +659,7 @@
     al.style.display = msg ? 'block' : 'none'; if (msg) { al.textContent = msg[0]; al.style.background = msg[1]; al.className = 'alert' + (msg[2] ? ' blink' : ''); }
     renderBook(); drawProfile(); drawHist();
     const stops = D.stops || [];
-    if (stops.length) $('stops').innerHTML = stops.slice(-5).reverse().map((x, i) => `<tr class="${i === 0 && !x.dep ? 'cur' : ''}"><td class="st">${x.station || '<span style="color:var(--dim)">szlak · ' + dec(x.km) + ' km</span>'}</td><td class="num">${x.arr ? x.arr.slice(11, 16) : '—'}</td><td class="num">${x.dep ? x.dep.slice(11, 16) : (i === 0 ? 'stoi…' : '—')}</td><td class="num">${x.durS ? Math.floor(x.durS / 60) + ':' + pad(x.durS % 60) : '—'}</td></tr>`).join('');
+    if (stops.length) $('stops').innerHTML = stops.slice(-5).reverse().map((x, i) => `<tr class="${i === 0 && !x.dep ? 'cur' : ''}"><td class="st">${x.station ? htmlEsc(x.station) : '<span style="color:var(--dim)">szlak · ' + dec(x.km) + ' km</span>'}</td><td class="num">${x.arr ? htmlEsc(String(x.arr).slice(11, 16)) : '—'}</td><td class="num">${x.dep ? htmlEsc(String(x.dep).slice(11, 16)) : (i === 0 ? 'stoi…' : '—')}</td><td class="num">${x.durS ? Math.floor(x.durS / 60) + ':' + pad(x.durS % 60) : '—'}</td></tr>`).join('');
     const nx = lastLL ? stationsAhead(lastLL)[0] : null; $('nextst').textContent = nx ? `następna: ${nx.name} ≈ ${fmtKm(nx.d)}` : '';
     const curStop = stops.length && !stops[stops.length - 1].dep && v < 1 ? stops[stops.length - 1] : null;
     if (nx && (!nxRef || nxRef.name !== nx.name)) nxRef = { name: nx.name, d0: Math.max(nx.d, 300) };
