@@ -7,7 +7,7 @@ TSW_I18N.add('de', {
   units: {
     kmh: (n) => `${Math.round(n)} Kilometer pro Stunde`,
     d: (m) => { if (m == null) return ''; if (m >= 950) { const k = Math.round(m / 100) / 10; return k === 1 ? 'ein Kilometer' : `${String(k).replace('.', ',')} Kilometer`; }
-      const r = m >= 200 ? Math.round(m / 50) * 50 : Math.round(m / 10) * 10; return `${r} Meter`; },
+      const r = m >= 200 ? Math.round(m / 50) * 50 : m < 10 ? Math.round(m) : Math.round(m / 10) * 10; return `${r} Meter`; },
     g: (g) => `${g} Promille`,
     min: (n) => (n === 1 ? 'einer Minute' : `${n} Minuten`),
     dur: (s) => (s < 60 ? `${s} Sekunden` : Math.round(s / 60) === 1 ? 'eine Minute' : `${Math.round(s / 60)} Minuten`),

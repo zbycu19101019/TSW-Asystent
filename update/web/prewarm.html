@@ -9,9 +9,6 @@
   const mem = { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; }, clear() {} };
   try { Object.defineProperty(window, 'localStorage', { value: mem, configurable: true }); } catch (_) {}
   window.TSW_DEMO = 1;   // bez wpisów w dzienniku lektora
-  const f0 = window.fetch.bind(window); let done = 0, total = 0;
-  window.__tswPrewarmTotal = (n) => { total = n; };
-  window.fetch = (u, o) => f0(u, o).then((r) => { if (String(u).includes('/tsw/say')) { done++; if (done % 10 === 0) parent.postMessage({ tswPrewarm: 'progress', done, total }, '*'); } return r; });
 })();
 </script>
 <script src="/tsw-phon.js"></script>
@@ -20,17 +17,21 @@
 <script src="/i18n/de.js"></script>
 <script src="/i18n/en.js"></script>
 <script src="/tsw-fx.js"></script>
+<script src="/i18n/cab-dict.js"></script>
+<script src="/tsw-cab.js"></script>
 <script src="/tsw-msg.js"></script>
 </head><body>
 <script>
 (async () => {
+  // wiadomości wyłącznie do okna programu z tego samego źródła (nigdy '*')
+  const tell = (m) => { try { parent.postMessage(Object.assign({ type: 'OFFLINE_PACK' }, m), location.origin); } catch (_) {} };
   try {
-    const list = window.TswMsgPrewarm(), V = window.TswVoice();
-    window.__tswPrewarmTotal(list.length);
-    parent.postMessage({ tswPrewarm: 'start', total: list.length }, '*');
-    const n = await V.prewarm(list);
-    parent.postMessage({ tswPrewarm: 'done', n, total: list.length }, '*');
-  } catch (e) { parent.postMessage({ tswPrewarm: 'error', msg: String(e && e.message || e) }, '*'); }
+    const V = window.TswVoice(), items = window.TswMsgPrewarm().map((q) => V.payload(q.text, q.lvl));
+    const r = await fetch('/api/app/offline-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', items }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.msg || ('HTTP ' + r.status));
+    tell({ status: 'started', total: j.total });
+  } catch (e) { tell({ status: 'error', msg: String((e && e.message) || e) }); }
 })();
 </script>
 </body></html>
