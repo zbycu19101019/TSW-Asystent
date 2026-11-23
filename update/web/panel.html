@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TSW Asystent</title>
+<script src="/i18n/app-ui.js"></script>
 <style>
   :root{--bg:#05070C;--panel:#0F1622;--line:#1C2536;--dim:#8A97AB;--txt:#E8EEF8;--acc:#E9C46A;--cyan:#38D6FF;--green:#3DDC97;--red:#FF3B4E}
   *{box-sizing:border-box}
@@ -28,6 +29,7 @@
   .lan .nic{font-size:12px;color:var(--dim);margin-top:6px} .lan .main code{font-size:clamp(14px,1.8vw,19px);font-weight:600}
   .lan details{margin-top:6px} .lan details summary{cursor:pointer;color:var(--dim);font-size:13px} .lan details code{color:var(--dim)}
   progress{width:100%;height:10px;accent-color:var(--green)}
+  .sel{padding:7px 10px;border-radius:10px;background:#0A0F18;color:var(--txt);border:1px solid var(--line);font:14px inherit}
   label.chk{display:flex;gap:10px;align-items:center;cursor:pointer}
   label.chk input{width:20px;height:20px}
   #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#12301F;border:1px solid var(--green);color:#CFF7E2;padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
@@ -38,6 +40,13 @@
 <main>
   <h1>TSW Asystent</h1>
   <div class="sub" id="ver">lektor i ekrany do Train Sim World 7</div>
+  <div class="row" id="langRow" style="margin:-6px 0 16px;gap:14px">
+    <label class="hint" style="margin:0;display:flex;gap:8px;align-items:center">Język programu
+      <select id="uiLang" class="sel"><option value="pl">Polski</option><option value="de">Deutsch</option><option value="en">English</option></select></label>
+    <label class="hint" style="margin:0;display:flex;gap:8px;align-items:center">Język lektora
+      <select id="lkLang" class="sel"><option value="pl|gb">Polski</option><option value="de|gb">Deutsch</option><option value="en|gb">English (GB)</option><option value="en|us">English (US)</option></select></label>
+    <span class="hint" style="margin:0">głos i ile mówi: „Ustawienia lektora”</span>
+  </div>
 
   <div class="grid">
     <div class="card"><div class="k">Stan</div>
@@ -104,8 +113,7 @@
         <div style="margin-top:10px">Kod parowania: <b id="pcPin" style="font-size:28px;letter-spacing:.2em;color:var(--acc)">······</b></div>
         <div class="hint">Na telefonie: aplikacja TSW Ekran → przesuń palcem w bok → „Sterowanie” → wpisz kod. Kod działa raz.</div>
         <div id="pcDev" style="margin-top:8px"></div>
-        <div class="hint">Telefon wciska klawisze gry (domyślne skróty TSW: A/D nastawnik, ; ' hamulec, Q czuwak, spacja syrena…) tylko wtedy,
-          gdy na pierwszym planie jest okno Train Sim World. Zmiana klawiszy: config.json → "controlKeys". <span id="pcLast"></span></div>
+        <div class="hint"><span>Dźwignie (nastawnik, hamulce, nawrotnik) program ustawia bezpośrednio przez API gry. Przyciski funkcji wciskają klawisze gry (domyślne skróty TSW: Q czuwak, spacja syrena, H reflektory…) tylko wtedy, gdy na pierwszym planie jest okno Train Sim World.</span> <span id="pcLast"></span></div>
       </div>
     </div>
 
@@ -150,6 +158,7 @@
 <div id="toast"></div>
 <script>
 const $ = (s) => document.querySelector(s);
+const TT = (s) => (window.TswAppUi ? TswAppUi.T(s) : s);   // tłumaczenie napisów spoza strony (okna potwierdzeń)
 const toast = (t) => { const e = $('#toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('show'), 3500); };
 const post = (u, b) => fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }).then((r) => r.json());
 const dot = (el, cls) => { el.className = 'dot ' + cls; };
@@ -190,7 +199,7 @@ async function refresh() {
     $('#pcOn').checked = !!C.enabled; $('#pcBody').style.opacity = C.enabled ? 1 : 0.4;
     $('#pcPin').textContent = C.enabled ? C.pin : '······';
     $('#pcLast').textContent = C.last ? 'Ostatnie polecenie: ' + C.last + '.' : '';
-    $('#pcDev').innerHTML = (C.devices || []).length ? C.devices.map((d) => `<div class="row" style="margin:4px 0"><span>📱 ${esc(d.name)} <span class="hint">sparowany ${new Date(d.at).toLocaleString('pl-PL')}</span></span><button data-unpair="${esc(d.id)}">Odłącz</button></div>`).join('') : '<div class="hint">Brak sparowanych telefonów.</div>';
+    $('#pcDev').innerHTML = (C.devices || []).length ? C.devices.map((d) => `<div class="row" style="margin:4px 0"><span>📱 ${esc(d.name)} <span class="hint">sparowany ${new Date(d.at).toLocaleString(window.TswAppUi ? TswAppUi.lang : 'pl')}</span></span><button data-unpair="${esc(d.id)}">Odłącz</button></div>`).join('') : '<div class="hint">Brak sparowanych telefonów.</div>';
     if (!kLoaded && C.keys) { kLoaded = true; renderKeys(C); }
     $('#pcDev').querySelectorAll('[data-unpair]').forEach((b) => b.onclick = async () => { await post('/api/phone/unpair', { id: b.dataset.unpair }); refresh(); });
     $('#fwBox').style.display = info.lan && info.firewall === false ? '' : 'none';
@@ -207,12 +216,12 @@ document.querySelectorAll('[data-win]').forEach((b) => b.onclick = () => post('/
 $('#auto').onchange = async (e) => { const r = await post('/api/app/autostart', { on: e.target.checked }); toast(r.autostart ? 'Będzie startować z Windows' : 'Autostart wyłączony'); };
 $('#upCheck').onclick = async () => { $('#upMsg').textContent = 'sprawdzam…'; await post('/api/app/update', { action: 'check' }); refresh(); };
 $('#upApply').onclick = async () => {
-  if (!confirm('Zainstalować aktualizację? TSW Asystent zostanie zamknięty i uruchomiony ponownie.')) return;
+  if (!confirm(TT('Zainstalować aktualizację? TSW Asystent zostanie zamknięty i uruchomiony ponownie.'))) return;
   await post('/api/app/update', { action: 'apply' });
   toast('Aktualizuję — program uruchomi się ponownie dopiero po potwierdzeniu');
   setTimeout(refresh, 1500);
 };
-$('#quit').onclick = async () => { if (!confirm('Zakończyć TSW Asystenta? Lektor i ekrany przestaną działać.')) return; await post('/api/app/quit'); document.body.innerHTML = '<main><h1>TSW Asystent zakończony</h1><p class="sub">Uruchom TSW-Asystent.exe, żeby wrócić.</p></main>'; };
+$('#quit').onclick = async () => { if (!confirm(TT('Zakończyć TSW Asystenta? Lektor i ekrany przestaną działać.'))) return; await post('/api/app/quit'); document.body.innerHTML = '<main><h1>TSW Asystent zakończony</h1><p class="sub">Uruchom TSW-Asystent.exe, żeby wrócić.</p></main>'; };
 // „Głosy offline”: ukryta ramka z silnikiem lektora układa listę stałych komunikatów (własne ustawienia, nie zmienia ekranów),
 // nagrania robi program (równoległość 2, ponowienia, wznawianie, anulowanie bez śmieci). Postęp = potwierdzone zapisy na dysku.
 let pwTimer = null;
@@ -291,11 +300,22 @@ function renderLed(L) {
   $('#ledList').querySelectorAll('button[data-addr]').forEach((b) => b.onclick = async () => { await post('/api/led', { action: 'pair', address: b.dataset.addr, name: b.dataset.name }); toast('Paruję z ' + b.dataset.name); refresh(); });
 }
 $('#ledScan').onclick = async () => { await post('/api/led', { action: 'scan' }); refresh(); setTimeout(refresh, 6500); };
-$('#ledForget').onclick = async () => { if (!confirm('Zapomnieć panel LED? Program przestanie się z nim łączyć.')) return; await post('/api/led', { action: 'forget' }); refresh(); };
+$('#ledForget').onclick = async () => { if (!confirm(TT('Zapomnieć panel LED? Program przestanie się z nim łączyć.'))) return; await post('/api/led', { action: 'forget' }); refresh(); };
 $('#ledBr').oninput = (e) => { $('#ledBrV').textContent = e.target.value + '%'; };
 $('#ledBr').onchange = async (e) => { await post('/api/led', { action: 'brightness', pct: +e.target.value }); };
 setInterval(() => { $('#ledPrev').src = '/api/led/preview.png?t=' + Date.now(); }, 1000);
 refresh(); setInterval(refresh, 2500);
+// ---- język programu i język lektora ----
+if (window.TswAppUi) TswAppUi.auto().then((l) => { $('#uiLang').value = l; });
+$('#uiLang').onchange = async (e) => { await post('/api/ekranik/tsw/settings', { uiLang: e.target.value }); location.reload(); };
+fetch('/api/ekranik/tsw/settings', { cache: 'no-store' }).then((r) => r.json()).then((s) => {
+  const v = s.lang === 'en' ? 'en|' + (s.accent || 'gb') : (s.lang || 'pl') + '|gb';
+  $('#lkLang').value = v;
+  const pv = [...$('#pwCombo').options].find((o) => o.value.startsWith(v + '|'));   // „Głosy offline”: domyślnie język lektora
+  if (pv) $('#pwCombo').value = pv.value;
+}).catch(() => {});
+$('#lkLang').onchange = async (e) => { const [lang, accent] = e.target.value.split('|');
+  await post('/api/ekranik/tsw/settings', { lang, accent }); toast(TT('Język lektora') + ': ' + e.target.selectedOptions[0].textContent); };
 </script>
 </body>
 </html>

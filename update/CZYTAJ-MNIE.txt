@@ -68,3 +68,23 @@ ZGŁASZANIE BŁĘDÓW
 
 ODINSTALOWANIE
   Panel → odznacz „Uruchamiaj razem z Windows”, zakończ program, usuń folder programu i %APPDATA%\TSW-Asystent.
+
+JĘZYK / SPRACHE / LANGUAGE
+  Okno programu: na górze „Język programu” (Polski / Deutsch / English) i „Język lektora” (Polski / Deutsch / English GB / US).
+  Nowa instalacja wybiera język lektora i okna według języka Windows (inne języki → angielski).
+
+DEUTSCH (KURZ)
+  1. TSW-Asystent-Setup-<Version>.exe starten (SmartScreen: „Weitere Informationen“ → „Trotzdem ausführen“).
+  2. Im Programmfenster oben „Programmsprache“ und „Sprecher-Sprache“ auf Deutsch stellen.
+  3. „Spiel + Fahrplan starten“ klicken — das Spiel startet mit Telemetrie (-HTTPAPI). Start über Steam: Startoptionen -HTTPAPI.
+  4. In den Führerstand steigen — der Sprecher beginnt. Stimme und Umfang: „Sprecher-Einstellungen“.
+  5. Handy (optional): „Im lokalen Netzwerk freigeben“ ankreuzen, Programm neu starten, QR-Code scannen (App TSW Ekran).
+  6. Offline-Stimmen: „Offline-Stimmen“ → Stimme wählen → „Erstellen“ (einmalig, 20–40 Minuten).
+
+ENGLISH (SHORT)
+  1. Run TSW-Asystent-Setup-<version>.exe (SmartScreen: "More info" → "Run anyway").
+  2. At the top of the program window set "Program language" and "Announcer language" to English (GB or US).
+  3. Click "Start game + timetable" — the game starts with telemetry (-HTTPAPI). Starting from Steam: launch option -HTTPAPI.
+  4. Get into the cab — the announcer starts. Voice and how much it speaks: "Announcer settings".
+  5. Phone (optional): tick "Share on the local network", restart the program, scan the QR code (TSW Ekran app).
+  6. Offline voices: "Offline voices" → choose a voice → "Prepare" (once, 20–40 minutes).

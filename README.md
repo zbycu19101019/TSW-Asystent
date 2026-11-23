@@ -9,7 +9,7 @@ pulpit maszynisty, podgląd i sterowanie z telefonu / tabletu w tej samej sieci 
 
 1. Uruchom instalator `TSW-Asystent-Setup-<wersja>.exe` (SmartScreen: „Więcej informacji” → „Uruchom mimo to”) — bez uprawnień administratora, skróty w menu Start i na pulpicie, deinstalacja w Ustawienia → Aplikacje.
 2. Otworzy się okno programu — kliknij **„Uruchom grę + rozkład”** (gra startuje z telemetrią `-HTTPAPI`).
-3. Język i głos lektora: przycisk **„Ustawienia lektora”** w oknie programu.
+3. Języki: na górze okna programu **„Język programu”** (Polski / Deutsch / English) i **„Język lektora”** (PL / DE / EN GB / EN US); głos — **„Ustawienia lektora”**.
 4. Telefon / tablet: zaznacz **„Udostępnij w sieci lokalnej”**, uruchom program ponownie i zeskanuj kod QR aparatem telefonu — pobierze się aplikacja `TSW-Ekran.apk`.
    Sterowanie pociągiem z telefonu włączasz osobno i parujesz telefon kodem z okna programu.
 5. Panel LED BK-Light ACT1025 (opcjonalnie): w oknie programu „Panel LED” → „Szukaj paneli” → „Paruj”.
@@ -33,4 +33,7 @@ Sieć lokalna i sterowanie z telefonu są domyślnie wyłączone; połączenie t
 
 **EN:** TSW Asystent is a radio-style announcer (PL / DE / EN), timetable with map, driver's dashboard and phone remote for Train Sim World 7.
 Download the installer from [Releases](../../releases/latest), run it (SmartScreen: *More info → Run anyway*), click **„Uruchom grę + rozkład”**
-(starts the game with `-HTTPAPI`), and switch the language under **„Ustawienia lektora”** (Deutsch / English). The interface is in Polish for now.
+(starts the game with `-HTTPAPI`). Set **Program language** and **Announcer language** at the top of the window — the interface, installer and phone app are available in English and German.
+
+**DE:** Zugfunk-Sprecher (PL / DE / EN), Fahrplan mit Karte, Führerstand und Handy-Steuerung für Train Sim World 7. Installationsprogramm unter [Releases](../../releases/latest);
+oben im Fenster „Programmsprache“ und „Sprecher-Sprache“ auf Deutsch stellen, dann „Spiel + Fahrplan starten“ (startet das Spiel mit `-HTTPAPI`).
